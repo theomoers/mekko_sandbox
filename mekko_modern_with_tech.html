@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Annual Global Emissions — Mekko + Tech Potentials</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  :root {
+    --bg0:#070A12; --bg1:#0B1220;
+    --card: rgba(255,255,255,.06); --card2: rgba(255,255,255,.04);
+    --stroke: rgba(255,255,255,.10); --stroke2: rgba(255,255,255,.16);
+    --text:#ECF3FF; --muted: rgba(236,243,255,.68); --muted2: rgba(236,243,255,.48);
+    --shadow: 0 18px 60px rgba(0,0,0,.45); --shadow2: 0 10px 28px rgba(0,0,0,.30);
+    --r: 18px; --r2: 14px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans-body: "Neue Haas Grotesk Display 55 Roman", "Neue Haas Grotesk Display Pro", "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans-head: "Neue Haas Grotesk Display 65 Medium", "Neue Haas Grotesk Display Pro", "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --accent: #7C5CFF; --accent2:#35D7FF; --overlay:#9CA3AF;
+    --bgGlow1: rgba(124,92,255,.30);
+    --bgGlow2: rgba(53,215,255,.22);
+    --bgGlow3: rgba(34,197,94,.10);
+  }
+  :root[data-theme="light"], body[data-theme="light"], [data-theme="light"] {
+    --bg0:#F3F6FC; --bg1:#E6EDF8;
+    --card: rgba(255,255,255,.94); --card2: rgba(255,255,255,.80);
+    --stroke: rgba(12,24,44,.14); --stroke2: rgba(12,24,44,.24);
+    --text:#10203A; --muted: rgba(16,32,58,.72); --muted2: rgba(16,32,58,.52);
+    --shadow: 0 16px 36px rgba(15,35,70,.10); --shadow2: 0 10px 20px rgba(15,35,70,.12);
+    --bgGlow1: rgba(36,131,255,.16);
+    --bgGlow2: rgba(5,181,146,.14);
+    --bgGlow3: rgba(255,170,41,.12);
+  }
+  body{
+    margin:0; font-family: var(--sans-body); color: var(--text);
+    background:
+      radial-gradient(1100px 700px at 18% 10%, var(--bgGlow1), transparent 60%),
+      radial-gradient(1000px 700px at 90% 18%, var(--bgGlow2), transparent 60%),
+      radial-gradient(900px 700px at 55% 105%, var(--bgGlow3), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+    min-height:100vh;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:18px 16px 28px;}
+  .topbar{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:14px;}
+  .title{display:flex;flex-direction:column;gap:6px;max-width:920px;}
+  h1{margin:0;font-size:22px;letter-spacing:.2px;font-weight:500;}
+  .subtitle{margin:0;color:var(--muted);font-size:13.5px;line-height:1.4;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:0;border-radius:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;}
+  .chip .k{color:var(--muted2);font-size:12px;font-weight:700;letter-spacing:.2px;}
+  .chip .v{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:750;}
+  .chip.ok .v{color:rgba(148,163,184,.98);}
+  .chip.fallback .v{color:rgba(245,158,11,.95);}
+  .btn{appearance:none;border:1px solid var(--stroke);background:var(--card2);color:var(--text);padding:10px 12px;border-radius:999px;cursor:pointer;font-weight:750;font-size:12px;box-shadow:var(--shadow2);backdrop-filter:blur(10px);}
+  [data-theme="light"] .btn{background:rgba(255,255,255,.9);}
+  .btn:hover{border-color:var(--stroke2);transform:translateY(-1px);}
+  .btn:active{transform:translateY(0px);}
+  .card{border:1px solid var(--stroke);border-radius:var(--r);background:linear-gradient(180deg,var(--card),var(--card2));box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(10px);}
+  .layout{display:grid;grid-template-columns:360px 1fr;min-height:730px;}
+  .sidebar{border-right:1px solid var(--stroke);padding:16px 16px 18px;}
+  .sideTitle{font-size:12px;color:var(--muted2);font-weight:500;letter-spacing:.35px;text-transform:uppercase;margin:2px 0 12px;}
+  .panel{border:0;background:transparent;border-radius:0;padding:0;margin-bottom:12px;}
+  .panel + .panel{padding-top:12px;border-top:1px solid var(--stroke);}
+  .panel h3{margin:0 0 8px;font-size:13px;font-weight:500;letter-spacing:.2px;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+  .muted{color:var(--muted);font-size:12px;}
+  input[type="range"]{width:100%;accent-color:var(--accent);}
+  .yearSlider{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:22px;
+    background:transparent;
+    cursor:pointer;
+    --pct: 0%;
+  }
+  .yearSlider:focus{outline:none;}
+  .yearSlider::-webkit-slider-runnable-track{
+    height:6px;
+    border-radius:999px;
+    border:0;
+    background:
+      linear-gradient(90deg, rgba(95,145,255,.88) 0%, rgba(95,145,255,.88) var(--pct), rgba(148,163,184,.28) var(--pct), rgba(148,163,184,.28) 100%);
+  }
+  .yearSlider::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:14px;
+    height:14px;
+    margin-top:-4px;
+    border-radius:50%;
+    border:1px solid rgba(95,145,255,.92);
+    background:#ffffff;
+    box-shadow:none;
+  }
+  .yearSlider::-moz-range-track{
+    height:6px;
+    border-radius:999px;
+    border:0;
+    background:rgba(148,163,184,.26);
+  }
+  .yearSlider::-moz-range-progress{
+    height:6px;
+    border-radius:999px;
+    background:rgba(95,145,255,.88);
+  }
+  .yearSlider::-moz-range-thumb{
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    border:1px solid rgba(95,145,255,.92);
+    background:#ffffff;
+    box-shadow:none;
+  }
+  .seg{display:flex;gap:8px;margin-top:8px;}
+  .seg button{flex:1;border-radius:12px;border:1px solid var(--stroke);background:rgba(0,0,0,.06);color:var(--muted);padding:10px 10px;cursor:pointer;font-weight:850;font-size:12px;letter-spacing:.2px;}
+  [data-theme="light"] .seg button{background:rgba(255,255,255,.55);}
+  .seg button.active{color:var(--text);border-color:rgba(124,92,255,.45);background:linear-gradient(180deg,rgba(124,92,255,.30),rgba(124,92,255,.12));}
+  [data-theme="light"] .seg button.active{color:#0F2344;border-color:rgba(33,93,176,.45);background:linear-gradient(180deg,rgba(54,124,212,.26),rgba(54,124,212,.12));}
+  .seg3 button{font-size:11px;padding:9px 8px;}
+  .miniRibbon{margin-top:8px;font-size:11px;font-weight:760;color:var(--muted);letter-spacing:.15px;}
+  .play{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border:0;
+    border-radius:0;
+    padding:2px 4px;
+    background:transparent;
+    cursor:pointer;
+    font-weight:600;
+    font-size:11px;
+    color:var(--muted);
+    box-shadow:none;
+  }
+  .play:hover{color:var(--text);}
+  .play:focus-visible{outline:1px solid var(--stroke2);outline-offset:2px;}
+  .play .dot{width:7px;height:7px;border-radius:999px;background:currentColor;box-shadow:none;}
+  .search,.select{width:100%;border-radius:12px;border:1px solid var(--stroke);background:rgba(0,0,0,.06);color:var(--text);padding:10px 10px;font-size:12px;outline:none;}
+  .search,.select{box-sizing:border-box;}
+  .search{padding:8px 9px;font-size:11.5px;}
+  [data-theme="light"] .search,[data-theme="light"] .select{background:rgba(255,255,255,.7);}
+  .search::placeholder{color:var(--muted2);}
+  .hint{margin-top:10px;color:var(--muted2);font-size:11px;line-height:1.4;}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:rgba(148,163,184,.14);border:1px solid rgba(148,163,184,.45);color:rgba(236,243,255,.92);font-weight:850;font-size:12px;}
+  [data-theme="light"] .pill{color:rgba(12,18,32,.92);}
+  .techDetails{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.5;}
+  .techDetails a{color:var(--text);text-decoration:underline;text-decoration-color:rgba(53,215,255,.55);}
+  .techDetails a:hover{text-decoration-color:rgba(53,215,255,.95);}
+  .contributors{max-height:180px;overflow:auto;border:1px solid var(--stroke);border-radius:10px;background:rgba(0,0,0,.06);}
+  [data-theme="light"] .contributors{background:rgba(255,255,255,.6);}
+  .trendCard{padding:2px 0 2px;}
+  .trendTitle{font-size:11px;font-weight:500;letter-spacing:.2px;color:var(--muted2);text-transform:uppercase;margin:2px 0 4px;}
+  .trendHint{font-size:11px;color:var(--muted2);margin-top:2px;}
+  .trendLegendIn text{fill:var(--muted);font-size:12px;font-family:var(--sans-body);}
+  .trendLegendIn .keyBg{fill:rgba(255,255,255,.68);stroke:none;}
+  [data-theme="dark"] .trendLegendIn .keyBg{fill:rgba(0,0,0,.26);}
+  #trendChart{width:100%;height:auto;display:block;}
+  .trendAxis path,.trendAxis line{stroke:var(--stroke2);}
+  .trendAxis text{fill:var(--muted);font-size:10px;font-family:var(--sans-body);}
+  .trendGrid line{stroke:var(--stroke);stroke-dasharray:2 5;}
+  .trendGrid path{display:none;}
+  .trendLineBau{fill:none;stroke:rgba(100,116,139,.95);stroke-width:2;}
+  .trendLinePostTech{fill:none;stroke:rgba(37,99,235,.95);stroke-width:2.4;}
+  [data-theme="light"] .trendLinePostTech{stroke:rgba(29,78,216,.95);}
+  .trendArea{fill:rgba(148,163,184,.24);}
+  .trendPointBau{fill:#ffffff;stroke:rgba(100,116,139,.95);stroke-width:1.4;}
+  .trendPointPostTech{fill:#ffffff;stroke:rgba(37,99,235,.95);stroke-width:1.6;}
+  .contribTable{width:100%;border-collapse:collapse;font-size:11px;}
+  .contribTable th,.contribTable td{padding:6px 8px;border-bottom:1px solid var(--stroke);}
+  .contribTable th{text-align:left;color:var(--muted2);font-size:10px;letter-spacing:.25px;text-transform:uppercase;}
+  .contribTable td:last-child,.contribTable th:last-child{text-align:right;font-family:var(--mono);}
+  .contribEmpty{padding:8px;color:var(--muted2);font-size:11px;}
+  .main{padding:16px 18px 16px;}
+  .kpi{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .kpiLeft{display:flex;flex-direction:column;gap:6px;}
+  .kpiLabel{color:var(--muted2);font-weight:500;letter-spacing:.35px;text-transform:uppercase;font-size:12px;}
+  .kpiValue{font-size:68px;font-weight:900;letter-spacing:-1.5px;line-height:1;}
+  .kpiUnit{color:var(--muted);font-size:13px;margin-top:4px;}
+  .kpiRight{display:flex;gap:10px;flex-wrap:wrap;}
+  .stat{border:0;border-radius:0;padding:2px 0;min-width:148px;background:transparent;}
+  .stat .k{color:var(--muted2);font-size:11px;font-weight:850;letter-spacing:.25px;text-transform:uppercase;}
+  .stat .v{margin-top:6px;font-family:var(--mono);font-size:13px;font-weight:850;}
+  .chartWrap{border:1px solid var(--stroke);border-radius:6px;padding:10px 10px 8px;background:rgba(0,0,0,.06);position:relative;overflow:hidden;}
+  [data-theme="light"] .chartWrap{background:rgba(255,255,255,.6);}
+  .chartRegion{display:flex;flex-direction:column;gap:10px;align-items:stretch;}
+  svg{width:100%;height:auto;display:block;}
+  .sectorLabel{font-size:12px;font-weight:500;fill:var(--text);opacity:.95;}
+  .subLabel{font-size:11px;font-weight:850;fill:rgba(255,255,255,.98);stroke:none;letter-spacing:.1px;}
+  .rect{stroke:rgba(255,255,255,.92);stroke-width:2px;rx:2px;ry:2px;filter:drop-shadow(0 10px 16px rgba(0,0,0,.18));}
+  [data-theme="light"] .rect{stroke:rgba(255,255,255,.95);filter:drop-shadow(0 8px 12px rgba(0,0,0,.10));}
+  .rect:hover{stroke-width:3px;filter:drop-shadow(0 16px 22px rgba(0,0,0,.28));}
+  .overlay{rx:2px;ry:2px;pointer-events:none;opacity:.95;stroke:rgba(71,85,105,.45);stroke-width:.8px;}
+  .fade{opacity:.22;}
+  .legend{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border-radius:12px;border:1px solid var(--stroke);background:rgba(0,0,0,.22);backdrop-filter:blur(10px);box-shadow:none;}
+  [data-theme="light"] .legend{background:rgba(255,255,255,.76);}
+  .legend .title{font-weight:500;letter-spacing:.2px;font-size:10px;color:var(--muted2);text-transform:uppercase;}
+  h1, .sideTitle, .panel h3, .kpiLabel, .sectorLabel, .legend .title { font-family: var(--sans-head); }
+  .legend .row{margin:0;justify-content:flex-start;gap:8px;}
+  .swatch{width:12px;height:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background:var(--overlay);}
+  .swatch2{width:12px;height:12px;border-radius:4px;border:1px solid rgba(255,255,255,.35);background:repeating-linear-gradient(45deg, rgba(148,163,184,.65), rgba(148,163,184,.65) 4px, rgba(148,163,184,.18) 4px, rgba(148,163,184,.18) 8px);}
+  .legend .txt{font-size:10px;line-height:1.35;color:var(--muted);}
+  [data-theme="light"] .kpiValue,
+  [data-theme="light"] .chip .v,
+  [data-theme="light"] .stat .v{color:#1C3355;}
+  .tooltip{position:fixed;pointer-events:none;background:rgba(10,14,22,.95);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.92);border-radius:14px;padding:10px 12px;box-shadow:0 18px 50px rgba(0,0,0,.35);min-width:260px;opacity:0;transform:translateY(6px);transition:opacity .12s ease,transform .12s ease;z-index:50;backdrop-filter:blur(10px);}
+  [data-theme="light"] .tooltip{background:rgba(12,18,32,.95);}
+  .ttTop{display:flex;justify-content:space-between;gap:12px;font-weight:950;letter-spacing:.2px;margin-bottom:6px;}
+  .ttTop span:last-child{font-family:var(--mono);opacity:.85;font-weight:850;}
+  .ttSub{font-weight:850;margin-bottom:8px;opacity:.90;}
+  .ttGrid{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-family:var(--mono);font-size:11px;opacity:.92;}
+  footer{padding:12px 16px;border-top:1px solid var(--stroke);color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:10px 18px;}
+  footer b{color:var(--text);}
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{border-right:0;border-bottom:1px solid var(--stroke);}
+    .kpiValue{font-size:56px;}
+    .chartRegion{display:flex;flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app" data-theme="light">
+  <div class="topbar">
+    <div class="title">
+      <h1>Annual Global Emissions</h1>
+      <p class="subtitle">
+        Emissions Mekko + <b>Decarbonization Technology</b> (gray hatched area). Tile areas remain proportional to absolute emissions (consistent scale across years and effort levels).
+        Select a technology to see where it applies and how big its estimated potential is.
+      </p>
+    </div>
+    <div class="actions">
+      <div class="chip"><span class="k">Selected</span> <span class="v" id="selLabel">LOW EFFORT · 2025</span></div>
+      <div class="chip"><span class="k">Tech</span> <span class="v" id="techLabel">None</span></div>
+      <div class="chip" id="chipEmData"><span class="k">Emissions</span> <span class="v" id="emDataStatus">Loading…</span></div>
+      <div class="chip" id="chipTechData"><span class="k">Abatement</span> <span class="v" id="techDataStatus">Loading…</span></div>
+      <button class="btn" id="exportBtn" type="button">Export current CSV</button>
+      <button class="btn" id="themeBtn" type="button">Toggle theme</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sideTitle">Builder</div>
+
+        <div class="panel">
+          <h3>Year</h3>
+          <input id="yearSlider" class="yearSlider" type="range" min="0" max="2" step="1" value="0" />
+          <div class="row">
+            <div class="muted">2025</div>
+            <button class="play" id="playBtn" type="button"><span class="dot"></span><span id="playText">Play</span></button>
+            <div class="muted">2050</div>
+          </div>
+          <div class="miniRibbon" id="refRibbon">Display 2025 · Abatement by 2035 · Basis 2025</div>
+        </div>
+
+        <div class="panel">
+          <h3>Abatement Effort</h3>
+          <div class="seg">
+            <button id="btnLow" class="active" type="button">Low effort</button>
+            <button id="btnHigh" type="button">High effort</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Chart view</h3>
+          <div class="seg seg3">
+            <button id="btnViewBoth" class="active" type="button">Emissions + Decarb</button>
+            <button id="btnViewEmOnly" type="button">Emissions only</button>
+            <button id="btnViewDecarbOnly" type="button">Decarb only</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Decarbonization Technology</h3>
+          <select class="select" id="techSelect"></select>
+          <div class="row" style="margin-top:10px;">
+            <span class="pill" id="techPill">Overlay: Off</span>
+          </div>
+          <div class="techDetails" id="techDetails"></div>
+          <div class="techDetails" id="techSources"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Find subsector</h3>
+          <input class="search" id="search" placeholder="Type e.g., Coal, Road, Cement…" />
+          <div class="hint">Matches are highlighted across the chart. Clear to reset.</div>
+        </div>
+
+        <div class="panel">
+          <h3>How to read the overlay</h3>
+          <div class="hint">
+            The <b>hatched gray portion</b> is the selected technology’s abatement potential for each subsector at the current
+            horizon (<b>2025 view = by 2035</b>, <b>2035 view = by 2050</b>, <b>2050 view = post-2050</b>). Values come from the technology CSV,
+            are displayed as a share of mapped reference-year emissions, and are always capped by each tile’s emissions.
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="kpi">
+          <div class="kpiLeft">
+            <div class="kpiLabel" id="kpiScenario">LOW ABATEMENT EFFORT</div>
+            <div class="kpiValue" id="kpiValue">—</div>
+            <div class="kpiUnit">billion tonnes CO₂e (BtCO₂e)</div>
+          </div>
+          <div class="kpiRight">
+            <div class="stat"><div class="k">Total (BtCO₂e)</div><div class="v" id="statTotal">—</div></div>
+            <div class="stat"><div class="k">Decarbonization Technology (Bt)</div><div class="v" id="statTech">—</div></div>
+            <div class="stat"><div class="k">Overlay coverage (ref year)</div><div class="v" id="statTechPct">—</div></div>
+          </div>
+        </div>
+
+        <div class="chartRegion">
+          <div class="chartWrap">
+            <svg id="chart" viewBox="0 0 1180 520" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <div class="trendCard" id="trendCard">
+            <div class="trendTitle">Emissions Over Time</div>
+            <svg id="trendChart" viewBox="0 0 1180 190" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="trendHint" id="trendHint"></div>
+          </div>
+          <div class="contributors">
+            <table class="contribTable" aria-label="Top subsectors for abatement in current view">
+              <thead>
+                <tr><th>Top Subsectors for Abatement</th><th>Overlay</th><th>Share</th></tr>
+              </thead>
+              <tbody id="contribBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <footer>
+      <div><b>Source:</b> NGFS emissions CSV + BAU emissions CSV (external, configurable)</div>
+      <div><b>Decarbonization Technology:</b> IPCC AR6 WGIII + UNEP-CCC 2035 + IEA NZE + MPP steel (see technology panel).</div>
+      <div><b>Notes:</b> Ordering fixed to 2025. Each sector is normalized to full height (y-axis = subsector share), while total filled width scales with absolute emissions. Chart years map to abatement horizons: 2025->by 2035, 2035->by 2050, 2050->post-2050.</div>
+    </footer>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip" aria-hidden="true"></div>
+
+<script>
+  let DATA = {"high": {"2025": [{"category": "Industry", "sub": "Cement", "emissions": 1.45}, {"category": "Industry", "sub": "Chemicals", "emissions": 2.17}, {"category": "Industry", "sub": "Iron & Steel", "emissions": 3.66}, {"category": "Industry", "sub": "Non-ferrous metals", "emissions": 0.03}, {"category": "Industry", "sub": "Other Industry", "emissions": 5.0}, {"category": "Power & Heat", "sub": "Coal", "emissions": 8.76}, {"category": "Power & Heat", "sub": "Natural Gas", "emissions": 3.98}, {"category": "Power & Heat", "sub": "Oil", "emissions": 0.32}, {"category": "Agriculture & Land", "sub": "Agriculture fuel", "emissions": 0.39}, {"category": "Agriculture & Land", "sub": "Crops", "emissions": 5.45}, {"category": "Agriculture & Land", "sub": "Land use & Forestry", "emissions": 1.65}, {"category": "Agriculture & Land", "sub": "Livestock", "emissions": 0.29}, {"category": "Agriculture & Land", "sub": "Waste", "emissions": 2.03}, {"category": "Transport", "sub": "Aviation", "emissions": 0.53}, {"category": "Transport", "sub": "Marine", "emissions": 0.11}, {"category": "Transport", "sub": "Rail", "emissions": 0.13}, {"category": "Transport", "sub": "Road", "emissions": 7.78}, {"category": "Building", "sub": "Commercial Combustion", "emissions": 0.82}, {"category": "Building", "sub": "F-Gases", "emissions": 1.64}, {"category": "Building", "sub": "Residential Combustion", "emissions": 2.12}, {"category": "Other", "sub": "Residual", "emissions": 7.24}], "2035": [{"category": "Industry", "sub": "Cement", "emissions": 0.9}, {"category": "Industry", "sub": "Chemicals", "emissions": 2.7}, {"category": "Industry", "sub": "Iron & Steel", "emissions": 2.31}, {"category": "Industry", "sub": "Non-ferrous metals", "emissions": 0.03}, {"category": "Industry", "sub": "Other Industry", "emissions": 4.75}, {"category": "Power & Heat", "sub": "Coal", "emissions": 5.31}, {"category": "Power & Heat", "sub": "Natural Gas", "emissions": 3.12}, {"category": "Power & Heat", "sub": "Oil", "emissions": 0.22}, {"category": "Agriculture & Land", "sub": "Agriculture fuel", "emissions": 0.22}, {"category": "Agriculture & Land", "sub": "Crops", "emissions": 3.0}, {"category": "Agriculture & Land", "sub": "Land use & Forestry", "emissions": 0.9}, {"category": "Agriculture & Land", "sub": "Livestock", "emissions": 0.15}, {"category": "Agriculture & Land", "sub": "Waste", "emissions": 1.11}, {"category": "Transport", "sub": "Aviation", "emissions": 0.88}, {"category": "Transport", "sub": "Marine", "emissions": 0.17}, {"category": "Transport", "sub": "Rail", "emissions": 0.19}, {"category": "Transport", "sub": "Road", "emissions": 5.97}, {"category": "Building", "sub": "Commercial Combustion", "emissions": 0.71}, {"category": "Building", "sub": "F-Gases", "emissions": 1.23}, {"category": "Building", "sub": "Residential Combustion", "emissions": 1.83}, {"category": "Other", "sub": "Residual", "emissions": 6.54}], "2050": [{"category": "Industry", "sub": "Cement", "emissions": 0.33}, {"category": "Industry", "sub": "Chemicals", "emissions": 0.98}, {"category": "Industry", "sub": "Iron & Steel", "emissions": 0.19}, {"category": "Industry", "sub": "Non-ferrous metals", "emissions": 0.02}, {"category": "Industry", "sub": "Other Industry", "emissions": 2.11}, {"category": "Power & Heat", "sub": "Coal", "emissions": 0.15}, {"category": "Power & Heat", "sub": "Natural Gas", "emissions": 0.23}, {"category": "Power & Heat", "sub": "Oil", "emissions": 0.08}, {"category": "Agriculture & Land", "sub": "Agriculture fuel", "emissions": 0.15}, {"category": "Agriculture & Land", "sub": "Crops", "emissions": 2.04}, {"category": "Agriculture & Land", "sub": "Land use & Forestry", "emissions": 0.61}, {"category": "Agriculture & Land", "sub": "Livestock", "emissions": 0.09}, {"category": "Agriculture & Land", "sub": "Waste", "emissions": 0.75}, {"category": "Transport", "sub": "Aviation", "emissions": 0.59}, {"category": "Transport", "sub": "Marine", "emissions": 0.11}, {"category": "Transport", "sub": "Rail", "emissions": 0.18}, {"category": "Transport", "sub": "Road", "emissions": 3.15}, {"category": "Building", "sub": "Commercial Combustion", "emissions": 0.15}, {"category": "Building", "sub": "F-Gases", "emissions": 0.43}, {"category": "Building", "sub": "Residential Combustion", "emissions": 0.39}, {"category": "Other", "sub": "Residual", "emissions": 1.23}]}, "low": {"2025": [{"category": "Industry", "sub": "Cement", "emissions": 1.38}, {"category": "Industry", "sub": "Chemicals", "emissions": 2.17}, {"category": "Industry", "sub": "Iron & Steel", "emissions": 3.61}, {"category": "Industry", "sub": "Non-ferrous metals", "emissions": 0.03}, {"category": "Industry", "sub": "Other Industry", "emissions": 4.92}, {"category": "Power & Heat", "sub": "Coal", "emissions": 8.58}, {"category": "Power & Heat", "sub": "Natural Gas", "emissions": 3.92}, {"category": "Power & Heat", "sub": "Oil", "emissions": 0.32}, {"category": "Agriculture & Land", "sub": "Agriculture fuel", "emissions": 0.42}, {"category": "Agriculture & Land", "sub": "Crops", "emissions": 5.83}, {"category": "Agriculture & Land", "sub": "Land use & Forestry", "emissions": 1.77}, {"category": "Agriculture & Land", "sub": "Livestock", "emissions": 0.32}, {"category": "Agriculture & Land", "sub": "Waste", "emissions": 2.18}, {"category": "Transport", "sub": "Aviation", "emissions": 0.6}, {"category": "Transport", "sub": "Marine", "emissions": 0.13}, {"category": "Transport", "sub": "Rail", "emissions": 0.14}, {"category": "Transport", "sub": "Road", "emissions": 7.43}, {"category": "Building", "sub": "Commercial Combustion", "emissions": 0.8}, {"category": "Building", "sub": "F-Gases", "emissions": 1.64}, {"category": "Building", "sub": "Residential Combustion", "emissions": 2.08}, {"category": "Other", "sub": "Residual", "emissions": 6.81}], "2035": [{"category": "Industry", "sub": "Cement", "emissions": 1.2}, {"category": "Industry", "sub": "Chemicals", "emissions": 1.99}, {"category": "Industry", "sub": "Iron & Steel", "emissions": 2.87}, {"category": "Industry", "sub": "Non-ferrous metals", "emissions": 0.03}, {"category": "Industry", "sub": "Other Industry", "emissions": 4.93}, {"category": "Power & Heat", "sub": "Coal", "emissions": 5.13}, {"category": "Power & Heat", "sub": "Natural Gas", "emissions": 2.85}, {"category": "Power & Heat", "sub": "Oil", "emissions": 0.22}, {"category": "Agriculture & Land", "sub": "Agriculture fuel", "emissions": 0.36}, {"category": "Agriculture & Land", "sub": "Crops", "emissions": 4.97}, {"category": "Agriculture & Land", "sub": "Land use & Forestry", "emissions": 1.5}, {"category": "Agriculture & Land", "sub": "Livestock", "emissions": 0.26}, {"category": "Agriculture & Land", "sub": "Waste", "emissions": 1.85}, {"category": "Transport", "sub": "Aviation", "emissions": 0.64}, {"category": "Transport", "sub": "Marine", "emissions": 0.14}, {"category": "Transport", "sub": "Rail", "emissions": 0.17}, {"category": "Transport", "sub": "Road", "emissions": 5.92}, {"category": "Building", "sub": "Commercial Combustion", "emissions": 0.71}, {"category": "Building", "sub": "F-Gases", "emissions": 1.6}, {"category": "Building", "sub": "Residential Combustion", "emissions": 1.84}, {"category": "Other", "sub": "Residual", "emissions": 5.59}], "2050": [{"category": "Industry", "sub": "Cement", "emissions": 0.98}, {"category": "Industry", "sub": "Chemicals", "emissions": 1.54}, {"category": "Industry", "sub": "Iron & Steel", "emissions": 1.93}, {"category": "Industry", "sub": "Non-ferrous metals", "emissions": 0.03}, {"category": "Industry", "sub": "Other Industry", "emissions": 4.82}, {"category": "Power & Heat", "sub": "Coal", "emissions": 2.33}, {"category": "Power & Heat", "sub": "Natural Gas", "emissions": 1.76}, {"category": "Power & Heat", "sub": "Oil", "emissions": 0.33}, {"category": "Agriculture & Land", "sub": "Agriculture fuel", "emissions": 0.35}, {"category": "Agriculture & Land", "sub": "Crops", "emissions": 4.9}, {"category": "Agriculture & Land", "sub": "Land use & Forestry", "emissions": 1.48}, {"category": "Agriculture & Land", "sub": "Livestock", "emissions": 0.25}, {"category": "Agriculture & Land", "sub": "Waste", "emissions": 1.83}, {"category": "Transport", "sub": "Aviation", "emissions": 0.84}, {"category": "Transport", "sub": "Marine", "emissions": 0.14}, {"category": "Transport", "sub": "Rail", "emissions": 0.2}, {"category": "Transport", "sub": "Road", "emissions": 4.78}, {"category": "Building", "sub": "Commercial Combustion", "emissions": 0.57}, {"category": "Building", "sub": "F-Gases", "emissions": 1.4}, {"category": "Building", "sub": "Residential Combustion", "emissions": 1.47}, {"category": "Other", "sub": "Residual", "emissions": 4.73}]}};
+  let YEARS = [2025, 2035, 2050];
+  let CAT_ORDER = ["Industry", "Power & Heat", "Agriculture & Land", "Transport", "Building", "Other"];
+  let SUB_ORDER_BY_CAT = {"Industry": ["Cement", "Chemicals", "Iron & Steel", "Non-ferrous metals", "Other Industry"], "Power & Heat": ["Coal", "Natural Gas", "Oil"], "Agriculture & Land": ["Agriculture fuel", "Crops", "Land use & Forestry", "Livestock", "Waste"], "Transport": ["Aviation", "Marine", "Rail", "Road"], "Building": ["Commercial Combustion", "F-Gases", "Residential Combustion"], "Other": ["Residual"]};
+  let MAX_TOTAL = 55.550000000000004;
+
+  let TECHS = [{"id": "none", "name": "(None) \u2013 show emissions only", "tag": "Baseline", "details_html": "Select a technology to overlay an indicative abatement potential on each tile."}, {"id": "solar", "name": "Solar PV", "tag": "Power", "details_html": "<b>Anchor evidence:</b> IPCC AR6 WGIII Ch12 SM lists achievable mitigation potential for <b>solar</b> in 2030 of <b>2\u20137 GtCO\u2082-eq</b>. UNEP-CCC estimates <b>~13.0 (11.9\u201314.1) GtCO\u2082e</b> electricity mitigation potential in 2035. <br/><b>Translation:</b> allocate the 2035 electricity mitigation across fossil power tiles proportionally; split Solar/Wind using IPCC mid-point ratio (Solar ~54%, Wind ~46%). For 2050+ use an indicative near-complete power decarb envelope and split 50/50 Solar/Wind.", "sources": [{"label": "IPCC AR6 WGIII Ch12 SM (solar/wind ranges)", "url": "https://www.ipcc.ch/report/ar6/wg3/downloads/report/IPCC_AR6_WGIII_Chapter12_SM.pdf"}, {"label": "UNEP-CCC 2035 sectoral potentials (electricity ~13 GtCO2e)", "url": "https://unepccc.org/wp-content/uploads/2024/10/sectoral-greenhouse-gas-emissions-reductions-potentials-in-2035.pdf"}], "rules": {"type": "power_renewables", "split": "solar"}}, {"id": "wind", "name": "Wind (onshore + offshore)", "tag": "Power", "details_html": "<b>Anchor evidence:</b> IPCC AR6 WGIII Ch12 SM lists achievable mitigation potential for <b>wind</b> in 2030 of <b>2.1\u20135.6 GtCO\u2082-eq</b>. UNEP-CCC estimates <b>~13.0 (11.9\u201314.1) GtCO\u2082e</b> electricity mitigation potential in 2035. <br/><b>Translation:</b> same as Solar; for 2050+ split an indicative power decarb envelope 50/50 Solar/Wind (IEA NZE: wind+solar ~70% generation in 2050).", "sources": [{"label": "IPCC AR6 WGIII Ch12 SM (solar/wind ranges)", "url": "https://www.ipcc.ch/report/ar6/wg3/downloads/report/IPCC_AR6_WGIII_Chapter12_SM.pdf"}, {"label": "UNEP-CCC 2035 sectoral potentials", "url": "https://unepccc.org/wp-content/uploads/2024/10/sectoral-greenhouse-gas-emissions-reductions-potentials-in-2035.pdf"}, {"label": "IEA Net Zero by 2050 (wind+solar ~70% of generation in 2050)", "url": "https://www.iea.org/reports/net-zero-by-2050"}], "rules": {"type": "power_renewables", "split": "wind"}}, {"id": "green_steel", "name": "Green steel (H\u2082-DRI + EAF)", "tag": "Industry", "details_html": "<b>Anchor evidence:</b> Mission Possible Partnership estimates <b>100% green hydrogen routes</b> could deliver <b>~40\u201355%</b> of primary steel production in <b>2050</b>.<br/><b>Translation:</b> apply an abatement fraction to <i>Industry \u2192 Iron &amp; Steel</i>: 2035 = 10%, 2050 = 47% (midpoint), post\u20112050 = 75% (indicative; edit as needed).", "sources": [{"label": "MPP Steel Transition Strategy (H2 steel 40\u201355% in 2050)", "url": "https://www.energy-transitions.org/wp-content/uploads/2021/12/MPP-Steel_Transition-Strategy.pdf"}], "rules": {"type": "fractions_by_year", "targets": [{"category": "Industry", "sub": "Iron & Steel", "y2035": 0.1, "y2050": 0.47, "ypost": 0.75}]}}, {"id": "ccs_industry", "name": "CCS in industry (cement/chemicals)", "tag": "Industry", "details_html": "<b>Anchor evidence:</b> UNEP-CCC identifies an industrial CCS component of <b>~0.5 GtCO\u2082</b> by 2035 (within a larger industry total).<br/><b>Translation:</b> allocate the 2035 CCS cap across <i>Cement</i> and <i>Chemicals</i> proportional to their emissions; for 2050/post\u20112050 use indicative rising fractions (edit as needed).", "sources": [{"label": "UNEP-CCC 2035 sectoral potentials (industry CCS component)", "url": "https://unepccc.org/wp-content/uploads/2024/10/sectoral-greenhouse-gas-emissions-reductions-potentials-in-2035.pdf"}], "rules": {"type": "industry_ccs_cap", "cap_2035_gt": 0.5, "target_subs": [{"category": "Industry", "sub": "Cement"}, {"category": "Industry", "sub": "Chemicals"}], "fractions_2050_post": [0.35, 0.55]}}];
+
+  const SECTOR_BASE = {
+    "Industry": "#C8B6FF",
+    "Power & Heat": "#5B4AD6",
+    "Agriculture & Land": "#0F756A",
+    "Transport": "#6FD0FF",
+    "Other": "#D0D7DE",
+    "Building": "#0A5A8C"
+  };
+
+  const DEFAULT_CAT_ORDER = [...CAT_ORDER];
+  const DEFAULT_SUB_ORDER_BY_CAT = Object.fromEntries(
+    Object.entries(SUB_ORDER_BY_CAT).map(([k, v]) => [k, [...v]])
+  );
+  const DEFAULT_TECHS = JSON.parse(JSON.stringify(TECHS));
+  const DEFAULT_TECH_BY_ID = new Map(DEFAULT_TECHS.map(t => [t.id, t]));
+  const NO_TECH = { id: "none", name: "(None) - show emissions only", tag: "Baseline", details_html: "Select a technology to overlay an indicative abatement potential on each tile.", sources: [] };
+
+  const EMISSIONS_DATA_PATHS = (
+    window.location.protocol === "file:"
+      ? [
+          "/Users/tlm2160/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research 2/CKI/mekko/template/emissions_from_ngfs_btco2e.csv",
+          "template/emissions_from_ngfs_btco2e.csv"
+        ]
+      : [
+          "template/emissions_from_ngfs_btco2e.csv"
+        ]
+  );
+  const BAU_DATA_PATHS = (
+    window.location.protocol === "file:"
+      ? [
+          "/Users/tlm2160/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research 2/CKI/mekko/template/BAU_emissions.csv",
+          "template/BAU_emissions.csv"
+        ]
+      : [
+          "template/BAU_emissions.csv"
+        ]
+  );
+  const TECH_OVERLAY_PATHS = [
+    "template/technology_overlay.csv"
+  ];
+
+  let TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+  let BAU_FALLBACK_TOTAL_BY_YEAR = new Map();
+  let BAU_TOTAL_BY_YEAR = new Map();
+  let BAU_SOURCE_MODE = "Fallback";
+
+  function computeMaxTotal(data){
+    let max = 0;
+    for (const tier of Object.keys(data || {})){
+      for (const year of Object.keys(data[tier] || {})){
+        const total = (data[tier][year] || []).reduce((sum, r) => sum + (+r.emissions || 0), 0);
+        if (total > max) max = total;
+      }
+    }
+    return max;
+  }
+
+  function makeCsvCandidates(path){
+    const candidates = [];
+    const encoded = encodeURI(path);
+    candidates.push(path);
+    if (encoded !== path) candidates.push(encoded);
+    try { candidates.push(new URL(path, window.location.href).href); } catch {}
+    try { candidates.push(new URL(encoded, window.location.href).href); } catch {}
+    if (path.startsWith("/")) candidates.push(`file://${encoded}`);
+    return [...new Set(candidates)];
+  }
+
+  function parseCsvTextMaybe(text){
+    if (!text || !String(text).trim()) return [];
+    try {
+      return d3.csvParse(String(text));
+    } catch {
+      return [];
+    }
+  }
+
+  function hasRequiredColumns(rows, requiredColumns){
+    if (!requiredColumns || !requiredColumns.length) return rows.length > 0;
+    if (!rows.length) return false;
+    const keys = new Set(Object.keys(rows[0] || {}).map(k => String(k || "").trim().toLowerCase()));
+    return requiredColumns.every(c => keys.has(String(c).trim().toLowerCase()));
+  }
+
+  function loadTextViaXHR(url){
+    return new Promise((resolve, reject) => {
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.onload = () => (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) ? resolve(xhr.responseText) : reject(new Error(`XHR status ${xhr.status}`));
+        xhr.onerror = () => reject(new Error("XHR failed"));
+        xhr.send();
+      } catch (err){
+        reject(err);
+      }
+    });
+  }
+
+  function loadTextViaIframe(url){
+    return new Promise((resolve, reject) => {
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = url;
+      iframe.onload = () => {
+        try {
+          const doc = iframe.contentDocument;
+          const txt = (doc?.body?.textContent || doc?.documentElement?.textContent || "").trim();
+          iframe.remove();
+          if (!txt) reject(new Error("Iframe empty response"));
+          else resolve(txt);
+        } catch (err){
+          iframe.remove();
+          reject(err);
+        }
+      };
+      iframe.onerror = () => {
+        iframe.remove();
+        reject(new Error("Iframe failed"));
+      };
+      document.body.appendChild(iframe);
+    });
+  }
+
+  async function loadCsvFromCandidates(paths, requiredColumns = []){
+    let lastErr = null;
+    for (const path of paths){
+      for (const candidate of makeCsvCandidates(path)){
+        try {
+          const rows = await d3.csv(candidate);
+          if (rows && hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "d3.csv" };
+        } catch (err){
+          lastErr = err;
+        }
+        try {
+          const txt = await d3.text(candidate);
+          const rows = parseCsvTextMaybe(txt);
+          if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "d3.text" };
+        } catch (err){
+          lastErr = err;
+        }
+        try {
+          const txt = await loadTextViaXHR(candidate);
+          const rows = parseCsvTextMaybe(txt);
+          if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "xhr" };
+        } catch (err){
+          lastErr = err;
+        }
+        try {
+          const txt = await loadTextViaIframe(candidate);
+          const rows = parseCsvTextMaybe(txt);
+          if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "iframe" };
+        } catch (err){
+          lastErr = err;
+        }
+      }
+    }
+    throw lastErr || new Error("No readable CSV source");
+  }
+
+  function buildDataFromCsvRows(csvRows){
+    const out = {};
+    for (const r of csvRows || []){
+      const tier = (r.tier || "").trim().toLowerCase();
+      const year = String(+r.year || "").trim();
+      const category = (r.category || "").trim();
+      const sub = (r.sub || "").trim();
+      const emissions = +r.emissions;
+      if (!tier || !year || !category || !sub || !Number.isFinite(emissions)) continue;
+      if (!out[tier]) out[tier] = {};
+      if (!out[tier][year]) out[tier][year] = [];
+      out[tier][year].push({ category, sub, emissions });
+    }
+    return out;
+  }
+
+  function buildFallbackBauTotalsFromData(data){
+    const out = new Map();
+    for (const tier of Object.keys(data || {})){
+      for (const yearStr of Object.keys(data[tier] || {})){
+        const year = +yearStr;
+        if (!Number.isFinite(year)) continue;
+        const total = (data[tier][yearStr] || []).reduce((sum, r) => sum + Math.max(0, +r.emissions || 0), 0);
+        if (!out.has(year) || total > out.get(year)) out.set(year, total);
+      }
+    }
+    return out;
+  }
+
+  function buildBauTotalsFromCsvRows(csvRows){
+    const noTierTotals = new Map();
+    const tierTotals = new Map(); // year -> Map<tier,total>
+
+    for (const r of csvRows || []){
+      const year = +r.year;
+      if (!Number.isFinite(year)) continue;
+      const tier = String(r.tier || "").trim().toLowerCase();
+      const candidates = [
+        +r.bau_bt, +r.bau, +r.bau_emissions_bt, +r.total_bt, +r.emissions_bt, +r.emissions
+      ];
+      const value = candidates.find(Number.isFinite);
+      if (!Number.isFinite(value)) continue;
+      const v = Math.max(0, value);
+      if (tier){
+        if (!tierTotals.has(year)) tierTotals.set(year, new Map());
+        const byTier = tierTotals.get(year);
+        byTier.set(tier, (byTier.get(tier) || 0) + v);
+      } else {
+        noTierTotals.set(year, (noTierTotals.get(year) || 0) + v);
+      }
+    }
+
+    const out = new Map();
+    const years = new Set([...noTierTotals.keys(), ...tierTotals.keys()]);
+    for (const year of years){
+      if (noTierTotals.has(year)) {
+        out.set(year, noTierTotals.get(year));
+      } else {
+        const byTier = tierTotals.get(year) || new Map();
+        const maxTier = Math.max(0, ...Array.from(byTier.values()));
+        out.set(year, maxTier);
+      }
+    }
+    return out;
+  }
+
+  function refreshOrderingFromData(data){
+    const cats = new Set();
+    const subsByCat = new Map();
+    const years = new Set();
+
+    for (const tier of Object.keys(data || {})){
+      for (const year of Object.keys(data[tier] || {})){
+        years.add(+year);
+        for (const r of (data[tier][year] || [])){
+          if (!r.category || !r.sub) continue;
+          cats.add(r.category);
+          if (!subsByCat.has(r.category)) subsByCat.set(r.category, new Set());
+          subsByCat.get(r.category).add(r.sub);
+        }
+      }
+    }
+
+    const discoveredCats = [...cats];
+    CAT_ORDER = [
+      ...DEFAULT_CAT_ORDER.filter(c => discoveredCats.includes(c)),
+      ...discoveredCats.filter(c => !DEFAULT_CAT_ORDER.includes(c)).sort()
+    ];
+
+    const nextSubs = {};
+    for (const cat of CAT_ORDER){
+      const discoveredSubs = [...(subsByCat.get(cat) || new Set())];
+      const defaults = DEFAULT_SUB_ORDER_BY_CAT[cat] || [];
+      nextSubs[cat] = [
+        ...defaults.filter(s => discoveredSubs.includes(s)),
+        ...discoveredSubs.filter(s => !defaults.includes(s)).sort()
+      ];
+    }
+    SUB_ORDER_BY_CAT = nextSubs;
+
+    YEARS = [...years].filter(Number.isFinite).sort((a, b) => a - b);
+    if (!YEARS.length) YEARS = [2025, 2035, 2050];
+    yearSlider.max = Math.max(0, YEARS.length - 1);
+    STATE.yearIndex = Math.min(STATE.yearIndex, Math.max(0, YEARS.length - 1));
+    yearSlider.value = STATE.yearIndex;
+    updateYearSliderVisual();
+
+    MAX_TOTAL = computeMaxTotal(data);
+  }
+
+  function parseSourceList(raw){
+    const out = [];
+    for (const chunk of String(raw || "").split(";;")){
+      const [label, url] = chunk.split("|");
+      if (label && url) out.push({ label: label.trim(), url: url.trim() });
+    }
+    return out;
+  }
+
+  function yearTimeKey(year){
+    const y = +year;
+    if (!Number.isFinite(y)) return "";
+    return `y${y}`;
+  }
+
+  function buildTechStateFromCsvRows(rows){
+    const techById = new Map();
+    const overlayMid = new Map();
+    const overlayLow = new Map();
+    const overlayHigh = new Map();
+    for (const r of rows || []){
+      const techId = (r.tech_id || "").trim();
+      if (!techId || techId === "none") continue;
+      const name = (r.tech_name || techId).trim();
+      const tag = (r.tag || "").trim();
+      const detailsHtml = (r.details_html || "").trim();
+      if (!techById.has(techId)){
+        techById.set(techId, { id: techId, name, tag, details_html: detailsHtml, sources: [] });
+      }
+      const t = techById.get(techId);
+      if (!t.details_html && detailsHtml) t.details_html = detailsHtml;
+      if (!t.tag && tag) t.tag = tag;
+
+      const rowSources = [];
+      if (r.source_label && r.source_url) rowSources.push({ label: String(r.source_label).trim(), url: String(r.source_url).trim() });
+      rowSources.push(...parseSourceList(r.sources));
+      for (const src of rowSources){
+        if (!src.label || !src.url) continue;
+        if (!t.sources.some(s => s.label === src.label && s.url === src.url)) t.sources.push(src);
+      }
+
+      const tier = (r.tier || "").trim().toLowerCase();
+      const yearVal = +r.year;
+      const year = Number.isFinite(yearVal) ? String(yearVal) : "*";
+      const rawTime = (r.time_key ?? r.tk ?? r.time ?? "");
+      const timeKey = (String(rawTime).trim().toLowerCase()) || (year !== "*" ? yearTimeKey(yearVal) : "*");
+      const category = (r.category || "").trim();
+      const sub = (r.sub || "").trim();
+      const abatementMid = +r.abatement_bt;
+      const abatementLowRaw = +r.abatement_low_bt;
+      const abatementHighRaw = +r.abatement_high_bt;
+      if (!tier || !category || !sub || !Number.isFinite(abatementMid)) continue;
+      const abatementLow = Number.isFinite(abatementLowRaw) ? abatementLowRaw : abatementMid;
+      const abatementHigh = Number.isFinite(abatementHighRaw) ? abatementHighRaw : abatementMid;
+
+      const key = `${techId}|||${tier}|||${year}|||${timeKey || "*"}|||${category}|||${sub}`;
+      overlayMid.set(key, Math.max(0, (overlayMid.get(key) || 0) + abatementMid));
+      overlayLow.set(key, Math.max(0, (overlayLow.get(key) || 0) + abatementLow));
+      overlayHigh.set(key, Math.max(0, (overlayHigh.get(key) || 0) + abatementHigh));
+      // Support post-2050 rows authored with explicit future years (e.g. 2100)
+      // by also indexing them under wildcard year for the same post time key.
+      if (timeKey === "ypost" || timeKey === "post2050"){
+        const keyPostWildcardYear = `${techId}|||${tier}|||*|||${timeKey}|||${category}|||${sub}`;
+        overlayMid.set(keyPostWildcardYear, Math.max(0, (overlayMid.get(keyPostWildcardYear) || 0) + abatementMid));
+        overlayLow.set(keyPostWildcardYear, Math.max(0, (overlayLow.get(keyPostWildcardYear) || 0) + abatementLow));
+        overlayHigh.set(keyPostWildcardYear, Math.max(0, (overlayHigh.get(keyPostWildcardYear) || 0) + abatementHigh));
+      }
+      // Backward-compatible key variant (no explicit time_key)
+      const keyLegacy = `${techId}|||${tier}|||${year}|||*|||${category}|||${sub}`;
+      overlayMid.set(keyLegacy, Math.max(0, (overlayMid.get(keyLegacy) || 0) + abatementMid));
+      overlayLow.set(keyLegacy, Math.max(0, (overlayLow.get(keyLegacy) || 0) + abatementLow));
+      overlayHigh.set(keyLegacy, Math.max(0, (overlayHigh.get(keyLegacy) || 0) + abatementHigh));
+    }
+    const techList = [NO_TECH, ...Array.from(techById.values())];
+    return { techList, overlayMaps: { mid: overlayMid, low: overlayLow, high: overlayHigh } };
+  }
+
+  const app = document.getElementById("app");
+  function applyTheme(theme){
+    const next = (theme === "light") ? "light" : "dark";
+    app.dataset.theme = next;
+    document.documentElement.dataset.theme = next;
+    document.body.dataset.theme = next;
+  }
+  document.getElementById("themeBtn").addEventListener("click", ()=>{
+    applyTheme(app.dataset.theme === "dark" ? "light" : "dark");
+  });
+
+  const yearSlider = document.getElementById("yearSlider");
+  const playBtn = document.getElementById("playBtn");
+  const playText = document.getElementById("playText");
+  const refRibbon = document.getElementById("refRibbon");
+  const btnLow = document.getElementById("btnLow");
+  const btnHigh = document.getElementById("btnHigh");
+  const btnViewBoth = document.getElementById("btnViewBoth");
+  const btnViewEmOnly = document.getElementById("btnViewEmOnly");
+  const btnViewDecarbOnly = document.getElementById("btnViewDecarbOnly");
+  const exportBtn = document.getElementById("exportBtn");
+  const search = document.getElementById("search");
+  const techSelect = document.getElementById("techSelect");
+
+  const selLabel = document.getElementById("selLabel");
+  const techLabel = document.getElementById("techLabel");
+  const techPill = document.getElementById("techPill");
+  const techDetails = document.getElementById("techDetails");
+  const techSources = document.getElementById("techSources");
+
+  const kpiScenario = document.getElementById("kpiScenario");
+  const kpiValue = document.getElementById("kpiValue");
+  const statTotal = document.getElementById("statTotal");
+  const statTech = document.getElementById("statTech");
+  const statTechPct = document.getElementById("statTechPct");
+  const emDataStatus = document.getElementById("emDataStatus");
+  const techDataStatus = document.getElementById("techDataStatus");
+  const chipEmData = document.getElementById("chipEmData");
+  const chipTechData = document.getElementById("chipTechData");
+  const contribBody = document.getElementById("contribBody");
+  const trendSvg = d3.select("#trendChart");
+  const trendHint = document.getElementById("trendHint");
+
+  const svg = d3.select("#chart");
+  const tooltip = d3.select("#tooltip");
+
+  function setDataStatus(kind, mode, source = "", method = ""){
+    const isCsv = mode === "CSV";
+    const label = isCsv ? "CSV" : "Fallback";
+    const detail = [source, method].filter(Boolean).join(" via ");
+    if (kind === "emissions"){
+      emDataStatus.textContent = label;
+      chipEmData.classList.toggle("ok", isCsv);
+      chipEmData.classList.toggle("fallback", !isCsv);
+      chipEmData.title = detail || "embedded default";
+    } else {
+      techDataStatus.textContent = label;
+      chipTechData.classList.toggle("ok", isCsv);
+      chipTechData.classList.toggle("fallback", !isCsv);
+      chipTechData.title = detail || "rules/default";
+    }
+  }
+
+  const W = 1180, H = 520;
+  const margin = { top: 24, right: 16, bottom: 52, left: 16 };
+  const innerW = W - margin.left - margin.right;
+  const innerH = H - margin.top - margin.bottom;
+
+  // defs (hatch)
+  const defs = svg.append("defs");
+  defs.append("pattern")
+    .attr("id","hatch")
+    .attr("patternUnits","userSpaceOnUse")
+    .attr("width",10)
+    .attr("height",10)
+    .attr("patternTransform","rotate(45)")
+    .append("rect")
+    .attr("width",5)
+    .attr("height",10)
+    .attr("fill","rgba(120,132,149,.82)");
+  defs.append("pattern")
+    .attr("id","hatchBg")
+    .attr("patternUnits","userSpaceOnUse")
+    .attr("width",10)
+    .attr("height",10)
+    .attr("patternTransform","rotate(45)")
+    .append("rect")
+    .attr("width",10)
+    .attr("height",10)
+    .attr("fill","rgba(120,132,149,.20)");
+
+  svg.insert("rect", ":first-child")
+    .attr("x", margin.left + 2)
+    .attr("y", margin.top + 2)
+    .attr("width", innerW - 4)
+    .attr("height", innerH - 4)
+    .attr("rx", 4).attr("ry", 4)
+    .attr("fill", "transparent")
+    .attr("stroke", "rgba(255,255,255,.08)")
+    .attr("stroke-dasharray", "6,8");
+
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const sectorsG = g.append("g").attr("class", "sectors");
+
+  const fmtBt2 = d3.format(",.2f");
+  const fmtB1 = d3.format(",.1f");
+  const fmtPct = d3.format(".1%");
+
+  function updateYearSliderVisual(){
+    const min = +yearSlider.min || 0;
+    const max = +yearSlider.max || 1;
+    const val = +yearSlider.value || 0;
+    const pct = (max > min) ? ((val - min) / (max - min)) * 100 : 0;
+    yearSlider.style.setProperty("--pct", `${Math.max(0, Math.min(100, pct))}%`);
+  }
+
+  let STATE = {
+    tier: "low",
+    yearIndex: 0,
+    playing: false,
+    timer: null,
+    query: "",
+    techId: "none",
+    viewMode: "both"
+  };
+
+  function refreshTechSelectOptions(){
+    techSelect.innerHTML = "";
+    for (const t of TECHS) {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name;
+      techSelect.appendChild(opt);
+    }
+  }
+
+  function getTech(){ return TECHS.find(t => t.id === STATE.techId) || TECHS[0] || NO_TECH; }
+
+  function updateTechPanel(){
+    const t = getTech();
+    techLabel.textContent = (t.id === "none") ? "None" : t.name;
+      techPill.textContent = (t.id === "none") ? "Overlay status: Off" : "Overlay status: Active";
+    techDetails.innerHTML = t.details_html || "";
+    if (t.sources && t.sources.length){
+      techSources.innerHTML =
+        "<div style='margin-top:10px;color:var(--muted2);font-weight:900;letter-spacing:.2px;text-transform:uppercase;font-size:11px;'>Sources</div>" +
+        "<ul style='margin:6px 0 0 18px;padding:0;'>" +
+        t.sources.map(s => `<li style='margin:6px 0;'><a href='${s.url}' target='_blank' rel='noopener noreferrer'>${s.label}</a></li>`).join("") +
+        "</ul>";
+    } else {
+      techSources.innerHTML = "";
+    }
+  }
+
+  techSelect.addEventListener("change", (e)=>{
+    STATE.techId = e.target.value;
+    stopPlay();
+    updateTechPanel();
+    render();
+  });
+
+  function buildColorMap(){
+    const map = new Map();
+    for (const cat of CAT_ORDER){
+      const base = SECTOR_BASE[cat] || "#9aa4b2";
+      const subs = (SUB_ORDER_BY_CAT[cat] || []);
+      const light = d3.interpolateRgb(base, "#ffffff")(0.35);
+      const dark  = d3.interpolateRgb(base, "#000000")(0.22);
+      subs.forEach((sub, i) => {
+        const t = (subs.length <= 1) ? 0.5 : i/(subs.length-1);
+        map.set(`${cat}|||${sub}`, d3.interpolateRgb(light, dark)(t));
+      });
+    }
+    return map;
+  }
+  let COLOR_MAP = buildColorMap();
+
+  function stopPlay(){
+    STATE.playing = false;
+    if (STATE.timer) clearInterval(STATE.timer);
+    STATE.timer = null;
+    playText.textContent = "Play";
+  }
+  function startPlay(){
+    if (STATE.playing) return;
+    STATE.playing = true;
+    playText.textContent = "Pause";
+    STATE.timer = setInterval(() => {
+      STATE.yearIndex = (STATE.yearIndex + 1) % YEARS.length;
+      yearSlider.value = STATE.yearIndex;
+      updateYearSliderVisual();
+      render();
+    }, 1150);
+  }
+
+  playBtn.addEventListener("click", ()=> { STATE.playing ? stopPlay() : startPlay(); });
+  yearSlider.addEventListener("input", (e)=> {
+    STATE.yearIndex = +e.target.value;
+    updateYearSliderVisual();
+    stopPlay();
+    render();
+  });
+
+  function setTier(tier){
+    STATE.tier = tier;
+    btnLow.classList.toggle("active", tier==="low");
+    btnHigh.classList.toggle("active", tier==="high");
+    stopPlay();
+    render();
+  }
+  btnLow.addEventListener("click", ()=>setTier("low"));
+  btnHigh.addEventListener("click", ()=>setTier("high"));
+
+  function setViewMode(mode){
+    STATE.viewMode = mode;
+    btnViewBoth.classList.toggle("active", mode === "both");
+    btnViewEmOnly.classList.toggle("active", mode === "emissions");
+    btnViewDecarbOnly.classList.toggle("active", mode === "decarb");
+    render();
+  }
+  btnViewBoth.addEventListener("click", ()=>setViewMode("both"));
+  btnViewEmOnly.addEventListener("click", ()=>setViewMode("emissions"));
+  btnViewDecarbOnly.addEventListener("click", ()=>setViewMode("decarb"));
+
+  search.addEventListener("input", (e)=> { STATE.query = (e.target.value || "").trim().toLowerCase(); render(); });
+
+  function getRows(tier, year){
+    const emissionsTier = (String(tier || "").toLowerCase() === "low")
+      ? "high"
+      : (String(tier || "").toLowerCase() === "high")
+        ? "low"
+        : String(tier || "").toLowerCase();
+    const rows = (DATA[emissionsTier] && DATA[emissionsTier][String(year)]) ? DATA[emissionsTier][String(year)] : [];
+    const byKey = new Map(rows.map(r => [`${r.category}|||${r.sub}`, +r.emissions ]));
+    const out = [];
+    for (const cat of CAT_ORDER){
+      for (const sub of (SUB_ORDER_BY_CAT[cat] || [])){
+        out.push({ tier, emissionsTier, year, category: cat, sub, emissions: byKey.get(`${cat}|||${sub}`) ?? 0 });
+      }
+    }
+    return out;
+  }
+
+  function computeLayout(tier, year){
+    const rows = getRows(tier, year);
+    const sectorTotals = new Map();
+    for (const r of rows) sectorTotals.set(r.category, (sectorTotals.get(r.category) || 0) + r.emissions);
+    const globalTotal = Array.from(sectorTotals.values()).reduce((a,b)=>a+b, 0);
+
+    // Normalize each sector to full chart height so y encodes subsector shares.
+    const fillFactor = 1;
+    const fillH = innerH;
+
+    const sectors = [];
+    let xAcc = 0;
+    for (const cat of CAT_ORDER){
+      const sTot = sectorTotals.get(cat) || 0;
+      // Absolute scaling on x: total filled width varies with global emissions.
+      const w = (MAX_TOTAL > 0) ? (sTot / MAX_TOTAL) * innerW : 0;
+      const items = rows.filter(d => d.category === cat);
+      sectors.push({ category: cat, total: sTot, x0: xAcc, w, items });
+      xAcc += w;
+    }
+
+    for (const s of sectors){
+      let yAcc = 0;
+      s.subs = (SUB_ORDER_BY_CAT[s.category] || []).map(sub => {
+        const r = s.items.find(x => x.sub === sub) || { emissions: 0 };
+        const share = (s.total > 0) ? (r.emissions / s.total) : 0;
+        const y0 = yAcc; yAcc += share;
+        return {
+          category: s.category, sub, emissions: r.emissions, share,
+          y0: y0 * fillH, y1: yAcc * fillH,
+          sectorTotal: s.total, globalTotal, year, tier
+        };
+      });
+    }
+    return { year, tier, sectors, globalTotal, fillH, fillFactor };
+  }
+
+  function getOverlayWindow(displayYear){
+    const y = +displayYear;
+    if (!Number.isFinite(y) || y <= 2025){
+      return {
+        refYear: 2025,
+        targetLabel: "2035",
+        targetYearKeys: ["2035", "*"],
+        targetTimeKeys: ["y2035", "*"],
+        rulesYear: 2035
+      };
+    }
+    if (y <= 2035){
+      return {
+        refYear: 2035,
+        targetLabel: "2050",
+        targetYearKeys: ["2050", "*"],
+        targetTimeKeys: ["y2050", "*"],
+        rulesYear: 2050
+      };
+    }
+    return {
+      refYear: 2050,
+      targetLabel: "post-2050",
+      targetYearKeys: ["*", "2050"],
+      targetTimeKeys: ["ypost", "post2050", "y2050", "*"],
+      rulesYear: 2060
+    };
+  }
+
+  function buildReferenceEmissionState(tier, year){
+    const overlayWindow = getOverlayWindow(year);
+    const refYear = overlayWindow.refYear;
+    const refRows = getRows(tier, refYear);
+    const byKey = new Map(refRows.map(r => [`${r.category}|||${r.sub}`, Math.max(0, +r.emissions || 0)]));
+    const refTotal = refRows.reduce((sum, r) => sum + Math.max(0, +r.emissions || 0), 0);
+    return { refYear, byKey, refTotal, overlayWindow };
+  }
+
+  // ---- Tech overlay values come from CSV (template/technology_overlay.csv) ----
+  function yearBucket(year){
+    if (year <= 2035) return "y2035";
+    if (year <= 2050) return "y2050";
+    return "ypost";
+  }
+
+  function computeTechAbatementFromRules(rows, year, tech){
+    const out = new Map();
+    if (!tech || !tech.rules) return out;
+    const bucket = yearBucket(year);
+
+    const sumEm = (targets) => {
+      let s = 0;
+      for (const t of targets){
+        const r = rows.find(x => x.category === t.category && x.sub === t.sub);
+        if (r) s += r.emissions;
+      }
+      return s;
+    };
+
+    if (tech.rules?.type === "fractions_by_year"){
+      for (const t of tech.rules.targets || []){
+        const frac = t[bucket] ?? 0;
+        const r = rows.find(x => x.category === t.category && x.sub === t.sub);
+        if (!r) continue;
+        out.set(`${t.category}|||${t.sub}`, Math.max(0, Math.min(r.emissions, frac * r.emissions)));
+      }
+      return out;
+    }
+
+    if (tech.rules?.type === "industry_ccs_cap"){
+      const targets = tech.rules.target_subs || [];
+      const totalTargets = sumEm(targets);
+      if (bucket === "y2035"){
+        const cap = +tech.rules.cap_2035_gt || 0;
+        for (const t of targets){
+          const r = rows.find(x => x.category === t.category && x.sub === t.sub);
+          if (!r) continue;
+          const share = totalTargets > 0 ? r.emissions / totalTargets : 0;
+          out.set(`${t.category}|||${t.sub}`, Math.max(0, Math.min(r.emissions, cap * share)));
+        }
+      } else {
+        const [f2050, fpost] = tech.rules.fractions_2050_post || [0, 0];
+        const frac = (bucket === "y2050") ? f2050 : fpost;
+        for (const t of targets){
+          const r = rows.find(x => x.category === t.category && x.sub === t.sub);
+          if (!r) continue;
+          out.set(`${t.category}|||${t.sub}`, Math.max(0, Math.min(r.emissions, frac * r.emissions)));
+        }
+      }
+      return out;
+    }
+
+    if (tech.rules?.type === "power_renewables"){
+      const powerSubs = (SUB_ORDER_BY_CAT["Power & Heat"] || []).map(s => ({ category:"Power & Heat", sub:s }));
+      const targets = powerSubs.filter(t => ["Coal", "Natural Gas", "Oil"].includes(t.sub));
+      const totalPower = sumEm(targets);
+      const solarShare = 4.5 / (4.5 + 3.85);
+      const windShare = 1 - solarShare;
+      const split = (tech.rules.split === "solar") ? solarShare : windShare;
+
+      if (bucket === "y2035"){
+        const techCap = 13.0 * split;
+        for (const t of targets){
+          const r = rows.find(x => x.category === t.category && x.sub === t.sub);
+          if (!r) continue;
+          const share = totalPower > 0 ? r.emissions / totalPower : 0;
+          out.set(`${t.category}|||${t.sub}`, Math.max(0, Math.min(r.emissions, techCap * share)));
+        }
+      } else {
+        const envelope = (bucket === "y2050") ? 0.95 : 0.99;
+        const techFracOfEnvelope = 0.5;
+        for (const t of targets){
+          const r = rows.find(x => x.category === t.category && x.sub === t.sub);
+          if (!r) continue;
+          out.set(`${t.category}|||${t.sub}`, Math.max(0, Math.min(r.emissions, envelope * techFracOfEnvelope * r.emissions)));
+        }
+      }
+      return out;
+    }
+
+    return out;
+  }
+
+  function resolveFallbackTech(tech){
+    if (!tech) return tech;
+    if (tech.rules) return tech;
+    if (DEFAULT_TECH_BY_ID.has(tech.id)) return DEFAULT_TECH_BY_ID.get(tech.id);
+    const name = String(tech.name || "").toLowerCase();
+    if (name.includes("solar")) return DEFAULT_TECH_BY_ID.get("solar") || tech;
+    if (name.includes("wind")) return DEFAULT_TECH_BY_ID.get("wind") || tech;
+    if (name.includes("steel")) return DEFAULT_TECH_BY_ID.get("green_steel") || tech;
+    if (name.includes("ccs")) return DEFAULT_TECH_BY_ID.get("ccs_industry") || tech;
+    return tech;
+  }
+
+  function computeTechAbatement(rows, year, overlayWindow = getOverlayWindow(year)){
+    const tech = getTech();
+    const out = new Map();
+    if (!tech || tech.id === "none") return out;
+    const tier = STATE.tier;
+    const mapMid = TECH_OVERLAY_MAPS.mid || new Map();
+    const targetYearKeys = overlayWindow?.targetYearKeys || [String(year), "*"];
+    const targetTimeKeys = overlayWindow?.targetTimeKeys || [yearTimeKey(year).toLowerCase(), "*"];
+    let foundAny = false;
+    for (const row of rows){
+      const cellKey = `${row.category}|||${row.sub}`;
+      const keyCandidates = [];
+      for (const yk of targetYearKeys){
+        for (const tk of targetTimeKeys){
+          keyCandidates.push(`${tech.id}|||${tier}|||${yk}|||${tk}|||${row.category}|||${row.sub}`);
+        }
+      }
+      keyCandidates.push(`${tech.id}|||${tier}|||*|||*|||${row.category}|||${row.sub}`);
+      let value = 0;
+      for (const k of [...new Set(keyCandidates)]){
+        const candidate = Math.max(0, +mapMid.get(k) || 0);
+        if (candidate > 0){
+          value = candidate;
+          foundAny = true;
+          break;
+        }
+      }
+      if (value > 0) out.set(cellKey, Math.min(row.emissions, value));
+    }
+    if (!foundAny){
+      const fallbackTech = resolveFallbackTech(tech);
+      return computeTechAbatementFromRules(rows, overlayWindow?.rulesYear || year, fallbackTech);
+    }
+    return out;
+  }
+
+  function showTooltip(ev, d){
+    const techBt = d.techBt || 0;
+    const denomBt = Math.max(0, +(d.techDenomBt ?? d.emissions) || 0);
+    const techPct = (denomBt > 0) ? (techBt / denomBt) : 0;
+    const refYear = d.refYear || d.year;
+    const targetLabel = d.techTargetLabel || d.year;
+
+    const effortLabel = (String(d.tier || "").toLowerCase() === "low") ? "LOW EFFORT" : "HIGH EFFORT";
+    const html = `
+      <div class="ttTop"><span>${d.sub}</span><span>${effortLabel} · ${d.year}</span></div>
+      <div class="ttSub">${d.category}</div>
+      <div class="ttGrid">
+        <div>Emissions</div><div>${fmtBt2(d.emissions)} Bt</div>
+        <div>Share of sector</div><div>${fmtPct(d.share)}</div>
+        <div>Sector total</div><div>${fmtBt2(d.sectorTotal)} Bt</div>
+        <div>Global total</div><div>${fmtBt2(d.globalTotal)} Bt</div>
+        <div>Abatement horizon</div><div>by ${targetLabel}</div>
+        <div style="margin-top:6px;">Decarbonization Technology</div><div style="margin-top:6px;">${fmtBt2(techBt)} Bt</div>
+        <div>Overlay share (vs ${refYear})</div><div>${fmtPct(techPct)}</div>
+      </div>`;
+    tooltip.html(html).style("opacity", 1).style("transform","translateY(0px)").attr("aria-hidden","false");
+    const pad = 14;
+    const bb = tooltip.node().getBoundingClientRect();
+    let x = ev.clientX + pad, y = ev.clientY + pad;
+    if (x + bb.width > window.innerWidth - 10) x = ev.clientX - bb.width - pad;
+    if (y + bb.height > window.innerHeight - 10) y = ev.clientY - bb.height - pad;
+    tooltip.style("left", `${x}px`).style("top", `${y}px`);
+  }
+  function hideTooltip(){ tooltip.style("opacity", 0).style("transform","translateY(6px)").attr("aria-hidden","true"); }
+
+  function wrapLabelLines(text, maxWidth){
+    const clean = String(text || "").trim();
+    if (!clean || maxWidth <= 4) return [];
+    const maxChars = Math.max(3, Math.floor(maxWidth / 6.4));
+    const words = clean.split(/\s+/);
+    const lines = [];
+    let current = "";
+
+    const pushCurrent = () => {
+      if (current) lines.push(current);
+      current = "";
+    };
+
+    for (const word of words){
+      if (!current){
+        current = word;
+      } else if ((current.length + 1 + word.length) <= maxChars){
+        current += ` ${word}`;
+      } else {
+        pushCurrent();
+        current = word;
+      }
+    }
+    pushCurrent();
+    return lines;
+  }
+
+  function updateReferenceRibbon(displayYear, refState){
+    const targetLabel = refState?.overlayWindow?.targetLabel || String(displayYear);
+    const refYear = refState?.refYear || displayYear;
+    const abatementText = (String(targetLabel).toLowerCase() === "post-2050")
+      ? `Abatement ${targetLabel}`
+      : `Abatement by ${targetLabel}`;
+    refRibbon.textContent = `Display ${displayYear} · ${abatementText} · Basis ${refYear}`;
+  }
+
+  function updateContributors(rows, techMap, refByKey, refYear){
+    if (!contribBody) return;
+    if (STATE.techId === "none"){
+      contribBody.innerHTML = `<tr><td colspan="3" class="contribEmpty">Select a technology to view top subsectors for abatement.</td></tr>`;
+      return;
+    }
+    const items = [];
+    for (const r of rows){
+      const key = `${r.category}|||${r.sub}`;
+      const bt = Math.max(0, +(techMap.get(key) || 0));
+      if (bt <= 0) continue;
+      const denom = Math.max(0, +(refByKey.get(key) ?? r.emissions) || 0);
+      const pct = denom > 0 ? bt / denom : 0;
+      items.push({ label: `${r.category} - ${r.sub}`, bt, pct });
+    }
+    items.sort((a, b) => b.bt - a.bt);
+    const top = items.slice(0, 8);
+    if (!top.length){
+      contribBody.innerHTML = `<tr><td colspan="3" class="contribEmpty">No abatement potential in this effort/year selection.</td></tr>`;
+      return;
+    }
+    contribBody.innerHTML = top
+      .map(d => `<tr><td>${d.label}</td><td>${fmtBt2(d.bt)} Bt</td><td>${d3.format(".1%")(d.pct)}<span style="color:var(--muted2);"> (vs ${refYear})</span></td></tr>`)
+      .join("");
+  }
+
+  function renderMitigationTrend(){
+    const tech = getTech();
+    const tier = STATE.tier;
+    const effortLabel = (String(tier).toLowerCase() === "low") ? "LOW" : "HIGH";
+    const Wt = 1180;
+    const Ht = 190;
+    const m = { top: 12, right: 14, bottom: 30, left: 56 };
+    const iw = Wt - m.left - m.right;
+    const ih = Ht - m.top - m.bottom;
+
+    const years = [...YEARS].map(y => +y).filter(Number.isFinite).sort((a, b) => a - b);
+    if (!years.length){
+      trendSvg.selectAll("*").remove();
+      trendHint.textContent = "No year data available.";
+      return;
+    }
+
+    // Period deltas are derived from the prior display-year horizon mapping:
+    // 2025->2035, 2035->2050, 2050->post-2050.
+    const deltaByYear = new Map();
+    if (years.length) deltaByYear.set(years[0], 0);
+    if (tech.id !== "none"){
+      for (let i = 1; i < years.length; i++){
+        const prevYear = years[i - 1];
+        const prevRows = getRows(tier, prevYear);
+        const prevRef = buildReferenceEmissionState(tier, prevYear);
+        const deltaMap = computeTechAbatement(prevRows, prevYear, prevRef.overlayWindow);
+        const delta = Array.from(deltaMap.values()).reduce((sum, v) => sum + Math.max(0, +v || 0), 0);
+        deltaByYear.set(years[i], delta);
+      }
+    } else {
+      for (let i = 1; i < years.length; i++) deltaByYear.set(years[i], 0);
+    }
+
+    let cumulative = 0;
+    const series = years.map((year, idx) => {
+      if (idx === 0){
+        cumulative = 0;
+      } else {
+        cumulative += Math.max(0, +(deltaByYear.get(year) || 0));
+      }
+      const bauRaw = BAU_TOTAL_BY_YEAR.has(year) ? BAU_TOTAL_BY_YEAR.get(year) : BAU_FALLBACK_TOTAL_BY_YEAR.get(year);
+      const bau = Math.max(0, +(bauRaw || 0));
+      const postTech = Math.max(0, bau - cumulative);
+      return { year, bau, postTech, cumulativeAbatement: cumulative, intervalDelta: deltaByYear.get(year) || 0 };
+    });
+
+    trendSvg.selectAll("*").remove();
+    trendSvg.attr("viewBox", `0 0 ${Wt} ${Ht}`);
+
+    const maxY = Math.max(1, d3.max(series, d => Math.max(d.bau, d.postTech)) || 1) * 1.08;
+    const x = d3.scalePoint().domain(series.map(d => d.year)).range([0, iw]).padding(0.25);
+    const y = d3.scaleLinear().domain([0, maxY]).range([ih, 0]).nice(4);
+
+    const gTrend = trendSvg.append("g").attr("transform", `translate(${m.left},${m.top})`);
+    gTrend.append("g")
+      .attr("class", "trendGrid")
+      .call(d3.axisLeft(y).ticks(4).tickSize(-iw).tickFormat(""));
+
+    gTrend.append("g")
+      .attr("class", "trendAxis")
+      .attr("transform", `translate(0,${ih})`)
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+
+    gTrend.append("g")
+      .attr("class", "trendAxis")
+      .call(d3.axisLeft(y).ticks(4).tickFormat(v => `${d3.format(".1f")(v)}b`));
+
+    const lineBau = d3.line().x(d => x(d.year)).y(d => y(d.bau));
+    const linePostTech = d3.line().x(d => x(d.year)).y(d => y(d.postTech));
+    const areaMitigated = d3.area()
+      .x(d => x(d.year))
+      .y0(d => y(d.bau))
+      .y1(d => y(d.postTech));
+
+    gTrend.append("path").datum(series).attr("class", "trendLineBau").attr("d", lineBau);
+    gTrend.selectAll("circle.trendPointBau")
+      .data(series).enter().append("circle")
+      .attr("class", "trendPointBau")
+      .attr("cx", d => x(d.year))
+      .attr("cy", d => y(d.bau))
+      .attr("r", 3.2);
+
+    if (tech.id !== "none"){
+      gTrend.append("path").datum(series).attr("class", "trendArea").attr("d", areaMitigated);
+      gTrend.append("path").datum(series).attr("class", "trendLinePostTech").attr("d", linePostTech);
+      gTrend.selectAll("circle.trendPointPostTech")
+        .data(series).enter().append("circle")
+        .attr("class", "trendPointPostTech")
+        .attr("cx", d => x(d.year))
+        .attr("cy", d => y(d.postTech))
+        .attr("r", 3.2);
+      trendHint.textContent = `${tech.name} · ${effortLabel} abatement effort · BAU baseline is common across effort levels (${BAU_SOURCE_MODE}).`;
+    } else {
+      trendHint.textContent = `BAU baseline shown (${BAU_SOURCE_MODE}). Select a decarbonization technology to display post emissions.`;
+    }
+
+    const legendItems = [
+      { label: "BAU baseline (common)", color: "rgba(100,116,139,.95)", active: true },
+      { label: "Post with selected technology", color: "rgba(37,99,235,.95)", active: tech.id !== "none" }
+    ];
+    const keyW = 238;
+    const keyH = 40;
+    const key = gTrend.append("g")
+      .attr("class", "trendLegendIn")
+      .attr("transform", `translate(${Math.max(0, iw - keyW - 2)},4)`);
+    key.append("rect")
+      .attr("class", "keyBg")
+      .attr("rx", 8)
+      .attr("ry", 8)
+      .attr("width", keyW)
+      .attr("height", keyH);
+    legendItems.forEach((item, i) => {
+      const yRow = 13 + (i * 16);
+      key.append("line")
+        .attr("x1", 10).attr("x2", 28)
+        .attr("y1", yRow).attr("y2", yRow)
+        .attr("stroke", item.color)
+        .attr("stroke-width", 2.2)
+        .attr("opacity", item.active ? 1 : 0.35);
+      key.append("text")
+        .attr("x", 34)
+        .attr("y", yRow + 3)
+        .attr("opacity", item.active ? 1 : 0.55)
+        .text(item.label);
+    });
+  }
+
+  function csvEscape(value){
+    const s = String(value ?? "");
+    if (/["\n,]/.test(s)) return `"${s.replace(/"/g, "\"\"")}"`;
+    return s;
+  }
+
+  function exportCurrentStateCsv(){
+    const year = YEARS[STATE.yearIndex];
+    const tier = STATE.tier;
+    const rows = getRows(tier, year);
+    const refState = buildReferenceEmissionState(tier, year);
+    const techMap = computeTechAbatement(rows, year, refState.overlayWindow);
+    const targetLabel = refState.overlayWindow?.targetLabel || String(year);
+    const lines = [];
+    const emissionTier = rows.length ? (rows[0].emissionsTier || "") : "";
+    lines.push([
+      "abatement_effort_tier","emissions_path_tier","display_year","overlay_target","ref_year","view_mode",
+      "tech_id","tech_name","category","sub","emissions_bt","overlay_bt","overlay_share_vs_ref"
+    ].join(","));
+    for (const r of rows){
+      const key = `${r.category}|||${r.sub}`;
+      const overlayBt = Math.max(0, +(techMap.get(key) || 0));
+      const denom = Math.max(0, +(refState.byKey.get(key) ?? r.emissions) || 0);
+      const share = denom > 0 ? overlayBt / denom : 0;
+      lines.push([
+        tier,
+        emissionTier,
+        year,
+        targetLabel,
+        refState.refYear,
+        STATE.viewMode,
+        STATE.techId,
+        getTech().name,
+        r.category,
+        r.sub,
+        (+r.emissions || 0).toFixed(6),
+        overlayBt.toFixed(6),
+        share.toFixed(6)
+      ].map(csvEscape).join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `mekko_view_${tier}_${year}_${STATE.techId || "none"}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  }
+  exportBtn.addEventListener("click", exportCurrentStateCsv);
+
+  function render(){
+    const year = YEARS[STATE.yearIndex];
+    const tier = STATE.tier;
+    const effortLabel = (String(tier).toLowerCase() === "low") ? "LOW EFFORT" : "HIGH EFFORT";
+
+    const rows = getRows(tier, year);
+    const refState = buildReferenceEmissionState(tier, year);
+    const techMap = computeTechAbatement(rows, year, refState.overlayWindow);
+    const showOverlay = STATE.techId !== "none" && STATE.viewMode !== "emissions";
+    const baseOpacity = STATE.viewMode === "decarb" ? 0.16 : 1;
+
+    const L = computeLayout(tier, year);
+
+    for (const s of L.sectors){
+      for (const d of s.subs){
+        const key = `${d.category}|||${d.sub}`;
+        d.techBt = techMap.get(key) || 0;
+        d.techDenomBt = refState.byKey.get(key) ?? d.emissions;
+        d.refYear = refState.refYear;
+        d.techTargetLabel = refState.overlayWindow?.targetLabel || String(year);
+      }
+    }
+
+    selLabel.textContent = `${effortLabel} · ${year}`;
+    kpiScenario.textContent = `${effortLabel}`;
+    kpiValue.textContent = `${fmtB1(L.globalTotal)}b`;
+    statTotal.textContent = `${fmtBt2(L.globalTotal)} Bt`;
+    updateReferenceRibbon(year, refState);
+
+    const totalTech = Array.from(techMap.values()).reduce((a,b)=>a+b, 0);
+    statTech.textContent = `${fmtBt2(totalTech)} Bt`;
+    statTechPct.textContent = (refState.refTotal>0) ? `${d3.format(".1%")(totalTech/refState.refTotal)}` : "—";
+    if (STATE.techId === "none") techPill.textContent = "Overlay status: Off";
+    else if (STATE.viewMode === "emissions") techPill.textContent = "Overlay status: Hidden (Emissions-only view)";
+    else techPill.textContent = totalTech > 0 ? `Overlay status: Active (${fmtBt2(totalTech)} Bt)` : "Overlay status: 0 in this view";
+    renderMitigationTrend();
+    updateContributors(rows, techMap, refState.byKey, refState.refYear);
+
+    const sectorSel = sectorsG.selectAll("g.sector").data(L.sectors, d => d.category);
+
+    const sectorEnter = sectorSel.enter().append("g")
+      .attr("class","sector")
+      .attr("transform", d => `translate(${d.x0},0)`);
+
+    sectorEnter.append("text")
+      .attr("class","sectorLabel")
+      .attr("text-anchor","middle")
+      .attr("x", d => d.w/2)
+      .attr("y", innerH + 36)
+      .text(d => d.category);
+
+    sectorEnter.append("g").attr("class","cells");
+
+    const sectorMerge = sectorEnter.merge(sectorSel);
+    sectorMerge.transition().duration(520).ease(d3.easeCubicOut)
+      .attr("transform", d => `translate(${d.x0},0)`);
+
+    sectorMerge.select(".sectorLabel")
+      .transition().duration(520).ease(d3.easeCubicOut)
+      .attr("x", d => d.w/2)
+      .text(d => d.category)
+      .style("opacity", d => d.w >= 70 ? 1 : 0);
+
+    sectorMerge.each(function(sector){
+      const cellG = d3.select(this).select("g.cells");
+      const cellSel = cellG.selectAll("g.cell").data(sector.subs, d => d.sub);
+
+      const cellEnter = cellSel.enter().append("g").attr("class","cell");
+
+      cellEnter.append("rect")
+        .attr("class","rect")
+        .attr("rx", 2)
+        .attr("ry", 2)
+        .attr("x", 2)
+        .attr("y", innerH)
+        .attr("width", Math.max(0, sector.w - 4))
+        .attr("height", 0)
+        .attr("fill", d => COLOR_MAP.get(`${d.category}|||${d.sub}`) || "#9aa4b2")
+        .on("mousemove", (ev, d)=>showTooltip(ev, d))
+        .on("mouseleave", hideTooltip);
+
+      cellEnter.append("rect").attr("class","overlay overlaySolid")
+        .attr("rx", 2)
+        .attr("ry", 2)
+        .attr("x", 2).attr("y", innerH)
+        .attr("width", Math.max(0, sector.w - 4))
+        .attr("height", 0)
+        .attr("fill", "#9ca3af")
+        .attr("fill-opacity", 0.62);
+
+      cellEnter.append("rect").attr("class","overlay overlayPattern")
+        .attr("rx", 2)
+        .attr("ry", 2)
+        .attr("x", 2).attr("y", innerH)
+        .attr("width", Math.max(0, sector.w - 4))
+        .attr("height", 0)
+        .attr("fill", "url(#hatch)");
+
+      cellEnter.append("text")
+        .attr("class","subLabel")
+        .attr("x", 12)
+        .attr("y", innerH)
+        .text(d => d.sub);
+
+      const cellMerge = cellEnter.merge(cellSel);
+      cellMerge.classed("fade", d => (STATE.query ? !d.sub.toLowerCase().includes(STATE.query) : false));
+
+      const yBase = (innerH - L.fillH);
+
+      cellMerge.select("rect.rect")
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("x", 2)
+        .attr("width", Math.max(0, sector.w - 4))
+        .attr("y", d => yBase + d.y0)
+        .attr("height", d => Math.max(0, d.y1 - d.y0))
+        .attr("fill", d => COLOR_MAP.get(`${d.category}|||${d.sub}`) || "#9aa4b2")
+        .attr("fill-opacity", baseOpacity)
+        .attr("stroke", "rgba(255,255,255,.92)")
+        .attr("stroke-width", STATE.viewMode === "decarb" ? 1.25 : 2);
+
+      const overlayInset = 2;
+      const overlayX = 2 + overlayInset;
+      const overlayWidth = Math.max(0, sector.w - 4 - (2 * overlayInset));
+      const overlayHeight = (d) => {
+        const h = Math.max(0, d.y1 - d.y0);
+        const denom = Math.max(0, +(d.techDenomBt ?? d.emissions) || 0);
+        if (!showOverlay || denom <= 0) return 0;
+        const frac = Math.max(0, Math.min(1, (d.techBt || 0) / denom));
+        if (frac <= 0) return 0;
+        const raw = Math.min(h, Math.max(h * frac, 6));
+        return Math.max(0, raw - (2 * overlayInset));
+      };
+      const overlayY = (d) => {
+        return yBase + d.y0 + overlayInset;
+      };
+
+      cellMerge.select("rect.overlaySolid")
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("x", overlayX)
+        .attr("width", overlayWidth)
+        .attr("y", d => overlayY(d))
+        .attr("height", d => overlayHeight(d))
+        .attr("fill", "#9ca3af")
+        .attr("fill-opacity", 0.62)
+        .style("opacity", d => (showOverlay && overlayHeight(d) > 0) ? 1 : 0);
+
+      cellMerge.select("rect.overlayPattern")
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("x", overlayX)
+        .attr("width", overlayWidth)
+        .attr("y", d => overlayY(d))
+        .attr("height", d => overlayHeight(d))
+        .attr("fill", "url(#hatch)")
+        .style("opacity", d => (showOverlay && overlayHeight(d) > 0) ? 1 : 0);
+
+      cellMerge.select("text")
+        .attr("x", 10)
+        .each(function(d){
+          const txt = d3.select(this);
+          const h = Math.max(0, d.y1 - d.y0);
+          const availableW = Math.max(0, sector.w - 16);
+          const lines = wrapLabelLines(d.sub, availableW);
+          const lineH = 11.5;
+          const neededH = (lines.length * lineH) + 6;
+          const canShow = lines.length > 0 && h >= Math.max(16, neededH);
+
+          txt.attr("y", yBase + d.y0 + 14)
+            .style("opacity", canShow ? 1 : 0)
+            .text(null);
+
+          txt.selectAll("tspan").remove();
+          if (!canShow) return;
+          lines.forEach((line, i) => {
+            txt.append("tspan")
+              .attr("x", 10)
+              .attr("dy", i === 0 ? 0 : lineH)
+              .text(line);
+          });
+        });
+
+      cellSel.exit().remove();
+    });
+
+    sectorSel.exit().remove();
+  }
+
+  async function initialize(){
+    applyTheme(app.dataset.theme || "light");
+    try {
+      const emissionsLoad = await loadCsvFromCandidates(EMISSIONS_DATA_PATHS, ["tier", "year", "category", "sub", "emissions"]);
+      const parsedData = buildDataFromCsvRows(emissionsLoad.rows);
+      if (Object.keys(parsedData).length){
+        DATA = parsedData;
+        refreshOrderingFromData(DATA);
+        COLOR_MAP = buildColorMap();
+        setDataStatus("emissions", "CSV", emissionsLoad.source, emissionsLoad.method);
+      } else {
+        setDataStatus("emissions", "Fallback");
+      }
+    } catch (err) {
+      console.warn("Using embedded emissions fallback (CSV load failed).", err);
+      refreshOrderingFromData(DATA);
+      COLOR_MAP = buildColorMap();
+      setDataStatus("emissions", "Fallback");
+    }
+
+    BAU_FALLBACK_TOTAL_BY_YEAR = buildFallbackBauTotalsFromData(DATA);
+    BAU_TOTAL_BY_YEAR = new Map(BAU_FALLBACK_TOTAL_BY_YEAR);
+    BAU_SOURCE_MODE = "Fallback";
+    try {
+      const bauLoad = await loadCsvFromCandidates(BAU_DATA_PATHS, ["year"]);
+      const bauTotals = buildBauTotalsFromCsvRows(bauLoad.rows);
+      if (bauTotals.size){
+        BAU_TOTAL_BY_YEAR = bauTotals;
+        BAU_SOURCE_MODE = "CSV";
+      }
+    } catch (err) {
+      console.warn("Using fallback BAU baseline from emissions data (BAU CSV load failed).", err);
+    }
+
+    try {
+      const techLoad = await loadCsvFromCandidates(TECH_OVERLAY_PATHS, ["tech_id", "tier", "category", "sub", "abatement_bt"]);
+      const techState = buildTechStateFromCsvRows(techLoad.rows);
+      if (techState.techList.length > 1){
+        TECHS = techState.techList;
+        TECH_OVERLAY_MAPS = techState.overlayMaps;
+        setDataStatus("tech", "CSV", techLoad.source, techLoad.method);
+      } else {
+        TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
+        TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+        setDataStatus("tech", "Fallback");
+      }
+    } catch (err) {
+      console.warn("Using default technology metadata only (overlay CSV load failed).", err);
+      TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
+      TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+      setDataStatus("tech", "Fallback");
+    }
+
+    refreshTechSelectOptions();
+    if (!TECHS.some(t => t.id === STATE.techId)) STATE.techId = "none";
+    techSelect.value = STATE.techId;
+    yearSlider.value = STATE.yearIndex;
+    updateYearSliderVisual();
+    updateTechPanel();
+    render();
+  }
+
+  initialize();
+  window.addEventListener("scroll", hideTooltip, { passive:true });
+  window.addEventListener("resize", hideTooltip);
+</script>
+</body>
+</html>

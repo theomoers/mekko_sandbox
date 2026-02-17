@@ -1,0 +1,64 @@
+year,category,sub,emissions
+2025,Industry,Cement,1.45
+2025,Industry,Chemicals,2.17
+2025,Industry,Iron & Steel,3.66
+2025,Industry,Non-ferrous metals,0.03
+2025,Industry,Other Industry,5.0
+2025,Power & Heat,Coal,8.76
+2025,Power & Heat,Natural Gas,3.98
+2025,Power & Heat,Oil,0.32
+2025,Agriculture & Land,Agriculture fuel,0.43
+2025,Agriculture & Land,Crops,3.73
+2025,Agriculture & Land,Land use & Forestry,1.18
+2025,Agriculture & Land,Livestock,2.29
+2025,Agriculture & Land,Waste,2.19
+2025,Transport,Aviation,0.81
+2025,Transport,Marine,0.44
+2025,Transport,Rail,0.12
+2025,Transport,Road,7.19
+2025,Building,Commercial Combustion,0.82
+2025,Building,F-Gases,1.64
+2025,Building,Residential Combustion,2.12
+2025,Other,Residual,7.24
+2035,Industry,Cement,1.44
+2035,Industry,Chemicals,2.12
+2035,Industry,Iron & Steel,3.26
+2035,Industry,Non-ferrous metals,0.03
+2035,Industry,Other Industry,5.96
+2035,Power & Heat,Coal,6.74
+2035,Power & Heat,Natural Gas,3.64
+2035,Power & Heat,Oil,0.25
+2035,Agriculture & Land,Agriculture fuel,0.46
+2035,Agriculture & Land,Crops,3.95
+2035,Agriculture & Land,Land use & Forestry,1.25
+2035,Agriculture & Land,Livestock,2.43
+2035,Agriculture & Land,Waste,2.32
+2035,Transport,Aviation,0.91
+2035,Transport,Marine,0.45
+2035,Transport,Rail,0.13
+2035,Transport,Road,7.07
+2035,Building,Commercial Combustion,0.92
+2035,Building,F-Gases,1.63
+2035,Building,Residential Combustion,2.38
+2035,Other,Residual,8.05
+2050,Industry,Cement,1.46
+2050,Industry,Chemicals,1.95
+2050,Industry,Iron & Steel,2.9
+2050,Industry,Non-ferrous metals,0.03
+2050,Industry,Other Industry,6.86
+2050,Power & Heat,Coal,3.49
+2050,Power & Heat,Natural Gas,2.58
+2050,Power & Heat,Oil,0.43
+2050,Agriculture & Land,Agriculture fuel,0.47
+2050,Agriculture & Land,Crops,4.08
+2050,Agriculture & Land,Land use & Forestry,1.29
+2050,Agriculture & Land,Livestock,2.51
+2050,Agriculture & Land,Waste,2.39
+2050,Transport,Aviation,1.03
+2050,Transport,Marine,0.43
+2050,Transport,Rail,0.14
+2050,Transport,Road,6.73
+2050,Building,Commercial Combustion,0.95
+2050,Building,F-Gases,1.51
+2050,Building,Residential Combustion,2.45
+2050,Other,Residual,9.95

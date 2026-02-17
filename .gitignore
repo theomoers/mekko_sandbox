@@ -1,0 +1,19 @@
+# Ignore everything by default
+*
+
+# Keep repository metadata/docs
+!.gitignore
+!README.md
+!.nojekyll
+!CNAME
+
+# Keep website entry points
+!index.html
+!mekko_modern_with_tech.html
+
+# Keep only required runtime data files
+!template/
+template/*
+!template/emissions_from_ngfs_btco2e.csv
+!template/technology_overlay.csv
+!template/BAU_emissions.csv

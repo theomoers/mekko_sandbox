@@ -1,0 +1,127 @@
+tier,year,category,sub,emissions
+high,2025,Industry,Cement,1.415
+high,2025,Industry,Chemicals,2.17
+high,2025,Industry,Iron & Steel,3.635
+high,2025,Industry,Non-ferrous metals,0.03
+high,2025,Industry,Other Industry,4.96
+high,2025,Power & Heat,Coal,8.67
+high,2025,Power & Heat,Natural Gas,3.95
+high,2025,Power & Heat,Oil,0.32
+high,2025,Agriculture & Land,Agriculture fuel,0.445
+high,2025,Agriculture & Land,Crops,3.865
+high,2025,Agriculture & Land,Land use & Forestry,1.22
+high,2025,Agriculture & Land,Livestock,2.37
+high,2025,Agriculture & Land,Waste,2.2649999999999997
+high,2025,Transport,Aviation,0.8200000000000001
+high,2025,Transport,Marine,0.435
+high,2025,Transport,Rail,0.12
+high,2025,Transport,Road,7.055
+high,2025,Building,Commercial Combustion,0.81
+high,2025,Building,F-Gases,1.64
+high,2025,Building,Residential Combustion,2.1
+high,2025,Other,Residual,7.025
+high,2035,Industry,Cement,0.9
+high,2035,Industry,Chemicals,2.7
+high,2035,Industry,Iron & Steel,2.31
+high,2035,Industry,Non-ferrous metals,0.03
+high,2035,Industry,Other Industry,4.75
+high,2035,Power & Heat,Coal,5.31
+high,2035,Power & Heat,Natural Gas,3.12
+high,2035,Power & Heat,Oil,0.22
+high,2035,Agriculture & Land,Agriculture fuel,0.24
+high,2035,Agriculture & Land,Crops,2.05
+high,2035,Agriculture & Land,Land use & Forestry,0.65
+high,2035,Agriculture & Land,Livestock,1.25
+high,2035,Agriculture & Land,Waste,1.2
+high,2035,Transport,Aviation,0.9
+high,2035,Transport,Marine,0.41
+high,2035,Transport,Rail,0.14
+high,2035,Transport,Road,5.76
+high,2035,Building,Commercial Combustion,0.71
+high,2035,Building,F-Gases,1.23
+high,2035,Building,Residential Combustion,1.83
+high,2035,Other,Residual,6.54
+high,2050,Industry,Cement,0.33
+high,2050,Industry,Chemicals,0.98
+high,2050,Industry,Iron & Steel,0.19
+high,2050,Industry,Non-ferrous metals,0.02
+high,2050,Industry,Other Industry,2.11
+high,2050,Power & Heat,Coal,0.15
+high,2050,Power & Heat,Natural Gas,0.23
+high,2050,Power & Heat,Oil,0.08
+high,2050,Agriculture & Land,Agriculture fuel,0.16
+high,2050,Agriculture & Land,Crops,1.39
+high,2050,Agriculture & Land,Land use & Forestry,0.44
+high,2050,Agriculture & Land,Livestock,0.84
+high,2050,Agriculture & Land,Waste,0.81
+high,2050,Transport,Aviation,0.55
+high,2050,Transport,Marine,0.24
+high,2050,Transport,Rail,0.11
+high,2050,Transport,Road,3.13
+high,2050,Building,Commercial Combustion,0.15
+high,2050,Building,F-Gases,0.43
+high,2050,Building,Residential Combustion,0.39
+high,2050,Other,Residual,1.23
+low,2025,Industry,Cement,1.415
+low,2025,Industry,Chemicals,2.17
+low,2025,Industry,Iron & Steel,3.635
+low,2025,Industry,Non-ferrous metals,0.03
+low,2025,Industry,Other Industry,4.96
+low,2025,Power & Heat,Coal,8.67
+low,2025,Power & Heat,Natural Gas,3.95
+low,2025,Power & Heat,Oil,0.32
+low,2025,Agriculture & Land,Agriculture fuel,0.445
+low,2025,Agriculture & Land,Crops,3.865
+low,2025,Agriculture & Land,Land use & Forestry,1.22
+low,2025,Agriculture & Land,Livestock,2.37
+low,2025,Agriculture & Land,Waste,2.2649999999999997
+low,2025,Transport,Aviation,0.8200000000000001
+low,2025,Transport,Marine,0.435
+low,2025,Transport,Rail,0.12
+low,2025,Transport,Road,7.055
+low,2025,Building,Commercial Combustion,0.81
+low,2025,Building,F-Gases,1.64
+low,2025,Building,Residential Combustion,2.1
+low,2025,Other,Residual,7.025
+low,2035,Industry,Cement,1.2
+low,2035,Industry,Chemicals,1.99
+low,2035,Industry,Iron & Steel,2.87
+low,2035,Industry,Non-ferrous metals,0.03
+low,2035,Industry,Other Industry,4.93
+low,2035,Power & Heat,Coal,5.13
+low,2035,Power & Heat,Natural Gas,2.85
+low,2035,Power & Heat,Oil,0.22
+low,2035,Agriculture & Land,Agriculture fuel,0.39
+low,2035,Agriculture & Land,Crops,3.4
+low,2035,Agriculture & Land,Land use & Forestry,1.07
+low,2035,Agriculture & Land,Livestock,2.08
+low,2035,Agriculture & Land,Waste,1.99
+low,2035,Transport,Aviation,0.76
+low,2035,Transport,Marine,0.37
+low,2035,Transport,Rail,0.13
+low,2035,Transport,Road,5.61
+low,2035,Building,Commercial Combustion,0.71
+low,2035,Building,F-Gases,1.6
+low,2035,Building,Residential Combustion,1.84
+low,2035,Other,Residual,5.59
+low,2050,Industry,Cement,0.98
+low,2050,Industry,Chemicals,1.54
+low,2050,Industry,Iron & Steel,1.93
+low,2050,Industry,Non-ferrous metals,0.03
+low,2050,Industry,Other Industry,4.82
+low,2050,Power & Heat,Coal,2.33
+low,2050,Power & Heat,Natural Gas,1.76
+low,2050,Power & Heat,Oil,0.33
+low,2050,Agriculture & Land,Agriculture fuel,0.39
+low,2050,Agriculture & Land,Crops,3.36
+low,2050,Agriculture & Land,Land use & Forestry,1.06
+low,2050,Agriculture & Land,Livestock,2.05
+low,2050,Agriculture & Land,Waste,1.96
+low,2050,Transport,Aviation,0.8
+low,2050,Transport,Marine,0.34
+low,2050,Transport,Rail,0.14
+low,2050,Transport,Road,4.69
+low,2050,Building,Commercial Combustion,0.57
+low,2050,Building,F-Gases,1.4
+low,2050,Building,Residential Combustion,1.47
+low,2050,Other,Residual,4.73
