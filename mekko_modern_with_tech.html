@@ -334,8 +334,8 @@
     </div>
 
     <footer>
-      <div><b>Source:</b> NGFS emissions CSV + BAU emissions CSV (external, configurable)</div>
-      <div><b>Decarbonization Technology:</b> IPCC AR6 WGIII + UNEP-CCC 2035 + IEA NZE + MPP steel (see technology panel).</div>
+      <div><b>Source:</b> NGFS emissions CSV, BAU emissions CSV (external, configurable)</div>
+      <div><b>Decarbonization Technology:</b> <span id="footerTechSources">Loading...</span></div>
       <div><b>Notes:</b> Ordering fixed to 2025. Each sector is normalized to full height (y-axis = subsector share), while total filled width scales with absolute emissions. Chart years map to abatement horizons: 2025->by 2035, 2035->by 2050, 2050->post-2050.</div>
     </footer>
   </div>
@@ -630,6 +630,54 @@
     return out;
   }
 
+  function collectTechSourcesFromRows(rows){
+    const out = [];
+    const seen = new Set();
+    const add = (label, url) => {
+      const l = String(label || "").trim();
+      const u = String(url || "").trim();
+      if (!l || !u) return;
+      const key = `${l}|||${u}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ label: l, url: u });
+    };
+    for (const r of rows || []){
+      add(r.source_label, r.source_url);
+      for (const s of parseSourceList(r.sources)) add(s.label, s.url);
+    }
+    return out;
+  }
+
+  function collectTechSourcesFromTechs(techs){
+    const out = [];
+    const seen = new Set();
+    for (const t of techs || []){
+      for (const s of (t.sources || [])){
+        const l = String(s.label || "").trim();
+        const u = String(s.url || "").trim();
+        if (!l || !u) continue;
+        const key = `${l}|||${u}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ label: l, url: u });
+      }
+    }
+    return out;
+  }
+
+  function renderFooterTechSources(sources){
+    if (!footerTechSources) return;
+    const list = (sources || []).filter(s => s && s.label && s.url);
+    if (!list.length){
+      footerTechSources.textContent = "No sources loaded.";
+      return;
+    }
+    footerTechSources.innerHTML = list
+      .map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.label}</a>`)
+      .join(", ");
+  }
+
   function yearTimeKey(year){
     const y = +year;
     if (!Number.isFinite(y)) return "";
@@ -738,6 +786,7 @@
   const chipEmData = document.getElementById("chipEmData");
   const chipTechData = document.getElementById("chipTechData");
   const contribBody = document.getElementById("contribBody");
+  const footerTechSources = document.getElementById("footerTechSources");
   const trendSvg = d3.select("#trendChart");
   const trendHint = document.getElementById("trendHint");
 
@@ -1646,16 +1695,19 @@
       if (techState.techList.length > 1){
         TECHS = techState.techList;
         TECH_OVERLAY_MAPS = techState.overlayMaps;
+        renderFooterTechSources(collectTechSourcesFromRows(techLoad.rows));
         setDataStatus("tech", "CSV", techLoad.source, techLoad.method);
       } else {
         TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
         TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+        renderFooterTechSources(collectTechSourcesFromTechs(TECHS));
         setDataStatus("tech", "Fallback");
       }
     } catch (err) {
       console.warn("Using default technology metadata only (overlay CSV load failed).", err);
       TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
       TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+      renderFooterTechSources(collectTechSourcesFromTechs(TECHS));
       setDataStatus("tech", "Fallback");
     }
 
