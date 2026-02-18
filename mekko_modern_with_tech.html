@@ -204,18 +204,18 @@
   [data-theme="light"] .contributors{background:rgba(255,255,255,.6);}
   .trendCard{padding:2px 0 2px;}
   .trendTitle{font-size:11px;font-weight:500;letter-spacing:.2px;color:var(--muted2);text-transform:uppercase;margin:2px 0 4px;}
-  .trendHint{font-size:11px;color:var(--muted2);margin-top:2px;}
-  .trendLegendIn text{fill:var(--muted);font-size:12px;font-family:var(--sans-body);}
+  .trendHint{font-size:10px;color:var(--muted2);margin-top:2px;font-family:var(--sans-body);}
+  .trendLegendIn text{fill:var(--muted);font-size:10px;font-family:var(--sans-body);font-weight:400;}
   .trendLegendIn .keyBg{fill:rgba(255,255,255,.68);stroke:none;}
   [data-theme="dark"] .trendLegendIn .keyBg{fill:rgba(0,0,0,.26);}
   #trendChart{width:100%;height:auto;display:block;}
   .trendAxis path,.trendAxis line{stroke:var(--stroke2);}
-  .trendAxis text{fill:var(--muted);font-size:10px;font-family:var(--sans-body);}
+  .trendAxis text{fill:var(--muted);font-size:10px;font-family:var(--sans-body);font-weight:400;}
   .trendGrid line{stroke:var(--stroke);stroke-dasharray:2 5;}
   .trendGrid path{display:none;}
   .trendMainBg{fill:rgba(255,255,255,.28);stroke:var(--stroke);stroke-width:1;}
   [data-theme="dark"] .trendMainBg{fill:rgba(0,0,0,.18);}
-  .trendSectionTitle{fill:var(--muted2);font-size:10px;letter-spacing:.25px;text-transform:uppercase;font-weight:700;}
+  .trendSectionTitle{fill:var(--muted2);font-size:10px;letter-spacing:.25px;text-transform:uppercase;font-weight:500;font-family:var(--sans-body);}
   .trendLineBau{fill:none;stroke:rgba(100,116,139,.95);stroke-width:2;}
   .trendLineTech{fill:none;stroke-width:1.35;stroke-dasharray:4 4;opacity:.5;}
   .trendLinePostTech{fill:none;stroke:rgba(37,99,235,.95);stroke-width:2.4;}
@@ -224,15 +224,15 @@
   .trendPointBau{fill:#ffffff;stroke:rgba(100,116,139,.95);stroke-width:1.4;}
   .trendPointPostTech{fill:#ffffff;stroke:rgba(37,99,235,.95);stroke-width:1.6;}
   .trendStackLabel{fill:var(--muted2);font-size:10px;letter-spacing:.2px;text-transform:uppercase;font-weight:700;}
-  .trendStackTotal{fill:var(--muted);font-size:9px;font-family:var(--mono);}
-  .trendStackHint{fill:var(--muted2);font-size:10px;}
-  .trendPeriodLabel{fill:var(--muted);font-size:9px;}
+  .trendStackTotal{fill:var(--muted);font-size:10px;font-family:var(--sans-body);font-weight:400;}
+  .trendStackHint{fill:var(--muted2);font-size:10px;font-family:var(--sans-body);}
+  .trendPeriodLabel{fill:var(--muted);font-size:10px;font-family:var(--sans-body);}
   .trendSubPanelBg{fill:rgba(255,255,255,.24);stroke:var(--stroke);stroke-width:1;}
   [data-theme="dark"] .trendSubPanelBg{fill:rgba(0,0,0,.14);}
-  .trendSubTitle{fill:var(--muted2);font-size:10px;letter-spacing:.2px;text-transform:uppercase;font-weight:700;}
+  .trendSubTitle{fill:var(--muted2);font-size:10px;letter-spacing:.2px;text-transform:uppercase;font-weight:500;font-family:var(--sans-body);}
   .trendPanelAxis path,.trendPanelAxis line{stroke:var(--stroke2);}
-  .trendPanelAxis text{fill:var(--muted2);font-size:9px;font-family:var(--sans-body);}
-  .trendWaterfallLegend{fill:var(--muted);font-size:8.5px;}
+  .trendPanelAxis text{fill:var(--muted2);font-size:10px;font-family:var(--sans-body);font-weight:400;}
+  .trendWaterfallLegend{fill:var(--muted);font-size:10px;font-family:var(--sans-body);}
   .trendWaterfallConnector{stroke:rgba(100,116,139,.7);stroke-width:1.1;stroke-dasharray:3 2;}
   .trendWaterfallTotalLine{stroke:rgba(37,99,235,.65);stroke-width:1.2;}
   .trendWaterfall .wfBg{fill:rgba(255,255,255,.68);stroke:none;}
@@ -1682,6 +1682,24 @@
     tooltip.style("left", `${x}px`).style("top", `${y}px`);
   }
 
+  function showTrendTechTooltip(ev, periodLabel, techName, bt, periodTotal){
+    const share = periodTotal > 0 ? bt / periodTotal : 0;
+    const html = `
+      <div class="ttTop"><span>${techName}</span><span>${periodLabel.replace("->", "→")}</span></div>
+      <div class="ttSub">Decarbonization Technology</div>
+      <div class="ttGrid">
+        <div>Abatement in period</div><div>${fmtBt2(bt)} Bt</div>
+        <div>Share of period</div><div>${fmtPct(share)}</div>
+      </div>`;
+    tooltip.html(html).style("opacity", 1).style("transform","translateY(0px)").attr("aria-hidden","false");
+    const pad = 14;
+    const bb = tooltip.node().getBoundingClientRect();
+    let x = ev.clientX + pad, y = ev.clientY + pad;
+    if (x + bb.width > window.innerWidth - 10) x = ev.clientX - bb.width - pad;
+    if (y + bb.height > window.innerHeight - 10) y = ev.clientY - bb.height - pad;
+    tooltip.style("left", `${x}px`).style("top", `${y}px`);
+  }
+
   function wrapLabelLines(text, maxWidth){
     const clean = String(text || "").trim();
     if (!clean || maxWidth <= 4) return [];
@@ -1788,15 +1806,22 @@
     const effortLabel = (String(tier).toLowerCase() === "low") ? "LOW" : "HIGH";
     const Wt = 1180;
     const Ht = hasTechSelection ? 360 : 205;
-    const m = { top: 12, right: 14, bottom: 14, left: 56 };
+    const m = { top: 12, right: 16, bottom: 14, left: 16 };
     const iw = Wt - m.left - m.right;
     const ih = Ht - m.top - m.bottom;
-    const mainH = 154;
-    const bottomTop = mainH + 28;
-    const bottomH = Math.max(110, ih - bottomTop);
-    const splitGap = 12;
-    const stackW = Math.max(360, Math.floor(iw * 0.62));
-    const waterfallW = Math.max(250, iw - stackW - splitGap);
+    const gapX = 16;
+    const gapY = 14;
+    const cellW = hasTechSelection ? ((iw - gapX) / 2) : iw;
+    const cellH = hasTechSelection ? ((ih - gapY) / 2) : ih;
+    const leftColH = hasTechSelection ? ((2 * cellH) + gapY) : ih;
+    const leftPlotX0 = 38;
+    const leftPlotX1 = cellW - 10;
+    const leftPlotY0 = 22;
+    const leftPlotY1 = leftColH - 32;
+    const rightPlotX0 = 34;
+    const rightPlotX1 = cellW - 10;
+    const rightPlotY0 = 26;
+    const rightPlotY1 = cellH - 24;
 
     const years = [...YEARS].map(y => +y).filter(Number.isFinite).sort((a, b) => a - b);
     if (!years.length){
@@ -1888,49 +1913,55 @@
     trendSvg.selectAll("*").remove();
     trendSvg.attr("viewBox", `0 0 ${Wt} ${Ht}`);
 
-    const maxYFromTech = d3.max(perTechSeries, s => d3.max(s.values, d => d.postTech) || 0) || 0;
-    const maxY = Math.max(
-      1,
-      d3.max(series, d => Math.max(d.bau, d.postTech)) || 1,
-      maxYFromTech
-    ) * 1.08;
-    const x = d3.scalePoint().domain(series.map(d => d.year)).range([18, iw - 18]).padding(0.25);
-    const y = d3.scaleLinear().domain([0, maxY]).range([mainH, 0]).nice(4);
+    const maxY = 60;
 
     const gTrend = trendSvg.append("g").attr("transform", `translate(${m.left},${m.top})`);
-    gTrend.append("text")
+    const topPanel = gTrend.append("g").attr("transform", "translate(0,0)");
+    const bottomLeftPanel = hasTechSelection
+      ? gTrend.append("g").attr("transform", `translate(${cellW + gapX},0)`)
+      : null;
+    const bottomRightPanel = hasTechSelection
+      ? gTrend.append("g").attr("transform", `translate(${cellW + gapX},${cellH + gapY})`)
+      : null;
+
+    const xL = d3.scalePoint().domain(series.map(d => d.year)).range([leftPlotX0, leftPlotX1]).padding(0.25);
+    const yL = d3.scaleLinear().domain([0, maxY]).range([leftPlotY1, leftPlotY0]).nice(4);
+
+    topPanel.append("text")
       .attr("class", "trendSectionTitle")
-      .attr("x", 8)
-      .attr("y", 14)
+      .attr("x", 0)
+      .attr("y", 12)
       .text("Global Emissions Paths (Bt)");
 
-    gTrend.append("g")
+    topPanel.append("g")
       .attr("class", "trendGrid")
-      .call(d3.axisLeft(y).ticks(5).tickSize(-iw).tickFormat(""));
+      .attr("transform", `translate(${leftPlotX0},0)`)
+      .call(d3.axisLeft(yL).ticks(5).tickSize(-(leftPlotX1 - leftPlotX0)).tickFormat(""));
 
-    gTrend.append("g")
+    topPanel.append("g")
       .attr("class", "trendAxis")
-      .attr("transform", `translate(0,${mainH})`)
-      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+      .attr("transform", `translate(${leftPlotX0},0)`)
+      .call(d3.axisLeft(yL).ticks(5).tickFormat(v => `${d3.format(".1f")(v)}b`));
 
-    gTrend.append("g")
+    topPanel.append("g")
       .attr("class", "trendAxis")
-      .call(d3.axisLeft(y).ticks(5).tickFormat(v => `${d3.format(".1f")(v)}b`));
+      .attr("transform", `translate(0,${leftPlotY1})`)
+      .call(d3.axisBottom(xL).tickFormat(d3.format("d")));
 
-    const lineBau = d3.line().x(d => x(d.year)).y(d => y(d.bau));
-    const linePostTech = d3.line().x(d => x(d.year)).y(d => y(d.postTech));
-    const lineTech = d3.line().x(d => x(d.year)).y(d => y(d.postTech));
+    const lineBau = d3.line().x(d => xL(d.year)).y(d => yL(d.bau));
+    const linePostTech = d3.line().x(d => xL(d.year)).y(d => yL(d.postTech));
+    const lineTech = d3.line().x(d => xL(d.year)).y(d => yL(d.postTech));
     const areaMitigated = d3.area()
-      .x(d => x(d.year))
-      .y0(d => y(d.bau))
-      .y1(d => y(d.postTech));
+      .x(d => xL(d.year))
+      .y0(d => yL(d.bau))
+      .y1(d => yL(d.postTech));
 
-    gTrend.append("path").datum(series).attr("class", "trendLineBau").attr("d", lineBau);
-    gTrend.selectAll("circle.trendPointBau")
+    topPanel.append("path").datum(series).attr("class", "trendLineBau").attr("d", lineBau);
+    topPanel.selectAll("circle.trendPointBau")
       .data(series).enter().append("circle")
       .attr("class", "trendPointBau")
-      .attr("cx", d => x(d.year))
-      .attr("cy", d => y(d.bau))
+      .attr("cx", d => xL(d.year))
+      .attr("cy", d => yL(d.bau))
       .attr("r", 3.2);
 
     const techById = new Map(selectedTechs.map(t => [t.id, t]));
@@ -1938,23 +1969,22 @@
 
     if (hasTechSelection){
       for (const s of perTechSeries){
-        gTrend.append("path")
+        topPanel.append("path")
           .datum(s.values)
           .attr("class", "trendLineTech")
           .attr("stroke", techColor(s.tech.id))
           .attr("d", lineTech);
       }
-
-      gTrend.append("path").datum(series).attr("class", "trendArea").attr("d", areaMitigated);
-      gTrend.append("path").datum(series).attr("class", "trendLinePostTech").attr("d", linePostTech);
-      gTrend.selectAll("circle.trendPointPostTech")
+      topPanel.append("path").datum(series).attr("class", "trendArea").attr("d", areaMitigated);
+      topPanel.append("path").datum(series).attr("class", "trendLinePostTech").attr("d", linePostTech);
+      topPanel.selectAll("circle.trendPointPostTech")
         .data(series).enter().append("circle")
         .attr("class", "trendPointPostTech")
-        .attr("cx", d => x(d.year))
-        .attr("cy", d => y(d.postTech))
+        .attr("cx", d => xL(d.year))
+        .attr("cy", d => yL(d.postTech))
         .attr("r", 3.2);
       const label = (selectedTechs.length === 1) ? selectedTechs[0].name : `${selectedTechs.length} technologies`;
-      trendHint.textContent = `${label} · ${effortLabel} abatement effort · Faint lines show individual technology paths; stacked bars show sector contributions per interval (${BAU_SOURCE_MODE} BAU).`;
+      trendHint.textContent = `${label} · ${effortLabel} abatement effort · Top: global emissions path; bottom: subsector and technology decompositions (${BAU_SOURCE_MODE} BAU).`;
     } else {
       trendHint.textContent = `BAU baseline shown (${BAU_SOURCE_MODE}). Select one or more decarbonization technologies to display post emissions.`;
     }
@@ -1964,11 +1994,11 @@
       { label: "Individual tech paths", color: "rgba(148,163,184,.90)", active: hasTechSelection },
       { label: "Post with selected technologies", color: "rgba(37,99,235,.95)", active: hasTechSelection }
     ];
-    const keyW = 258;
+    const keyW = Math.min(252, iw - 40);
     const keyH = 56;
-    const key = gTrend.append("g")
+    const key = topPanel.append("g")
       .attr("class", "trendLegendIn")
-      .attr("transform", `translate(${Math.max(0, iw - keyW - 8)},-5)`);
+      .attr("transform", `translate(54,${Math.max(0, leftColH - keyH - 36)})`);
     key.append("rect")
       .attr("class", "keyBg")
       .attr("rx", 8)
@@ -1981,7 +2011,7 @@
         .attr("x1", 10).attr("x2", 28)
         .attr("y1", yRow).attr("y2", yRow)
         .attr("stroke", item.color)
-      .attr("stroke-width", 2.2)
+        .attr("stroke-width", 2.2)
         .attr("stroke-dasharray", i === 1 ? "4 4" : null)
         .attr("opacity", item.active ? 1 : 0.35);
       key.append("text")
@@ -1993,34 +2023,31 @@
 
     if (!hasTechSelection) return;
 
-    const stackPanel = gTrend.append("g")
-      .attr("transform", `translate(0,${bottomTop})`);
-    stackPanel.append("text")
+    const periodsForBars = periodBreakdown.filter(d => d.total > 0);
+
+    bottomLeftPanel.append("text")
       .attr("class", "trendSubTitle")
-      .attr("x", 10)
-      .attr("y", 14)
+      .attr("x", 0)
+      .attr("y", 12)
       .text("Period Abatement by Subsector (Bt)");
 
-    const periodsForBars = periodBreakdown.filter(d => d.total > 0);
-    if (hasTechSelection && periodsForBars.length){
+    if (periodsForBars.length){
       const xS = d3.scaleBand()
         .domain(periodsForBars.map(d => d.label))
-        .range([30, stackW - 10])
-        .padding(0.32);
+        .range([rightPlotX0, rightPlotX1])
+        .padding(0.26);
       const maxStack = Math.max(0.001, d3.max(periodsForBars, d => d.total) || 0.001);
-      const yS = d3.scaleLinear().domain([0, maxStack]).range([bottomH - 20, 30]).nice(3);
+      const yS = d3.scaleLinear().domain([0, maxStack]).range([rightPlotY1, rightPlotY0]).nice(3);
 
-      stackPanel.append("g")
+      bottomLeftPanel.append("g")
         .attr("class", "trendPanelAxis")
-        .attr("transform", "translate(26,0)")
+        .attr("transform", "translate(28,0)")
         .call(d3.axisLeft(yS).ticks(3).tickFormat(v => `${d3.format(".1f")(v)}b`));
 
-      stackPanel.append("line")
-        .attr("x1", 26)
-        .attr("x2", stackW - 10)
-        .attr("y1", yS(0))
-        .attr("y2", yS(0))
-        .attr("stroke", "var(--stroke2)");
+      bottomLeftPanel.append("g")
+        .attr("class", "trendPanelAxis")
+        .attr("transform", `translate(0,${rightPlotY1})`)
+        .call(d3.axisBottom(xS).tickFormat(d => String(d || "").replace("->", "→")));
 
       for (const d of periodsForBars){
         let cum = 0;
@@ -2031,7 +2058,7 @@
           const [cat, sub] = cellKey.split("|||");
           const y0 = yS(cum);
           const y1 = yS(cum + v);
-          stackPanel.append("rect")
+          bottomLeftPanel.append("rect")
             .attr("x", xS(d.label))
             .attr("y", y1)
             .attr("width", xS.bandwidth())
@@ -2042,69 +2069,44 @@
             .on("mouseleave", hideTooltip);
           cum += v;
         }
-        stackPanel.append("text")
+        bottomLeftPanel.append("text")
           .attr("class", "trendStackTotal")
           .attr("x", (xS(d.label) || 0) + (xS.bandwidth() / 2))
           .attr("y", yS(d.total) - 4)
           .attr("text-anchor", "middle")
           .text(`${d3.format(".2f")(d.total)}b`);
-        stackPanel.append("text")
-          .attr("class", "trendPeriodLabel")
-          .attr("x", (xS(d.label) || 0) + (xS.bandwidth() / 2))
-          .attr("y", bottomH - 6)
-          .attr("text-anchor", "middle")
-          .text(String(d.label).replace("->", "→"));
       }
     } else {
-      stackPanel.append("text")
+      bottomLeftPanel.append("text")
         .attr("class", "trendStackHint")
-        .attr("x", 10)
-        .attr("y", 34)
-        .text("Select technologies to display sector-level period stacks.");
+        .attr("x", 0)
+        .attr("y", 30)
+        .text("No period decomposition in this selection.");
     }
 
-    const waterfallPanel = gTrend.append("g")
-      .attr("transform", `translate(${stackW + splitGap},${bottomTop})`);
-    waterfallPanel.append("text")
+    bottomRightPanel.append("text")
       .attr("class", "trendSubTitle")
-      .attr("x", 10)
-      .attr("y", 14)
+      .attr("x", 0)
+      .attr("y", 12)
       .text("Period Drop by Technology (Bt)");
 
-    if (hasTechSelection && periodsForBars.length){
+    if (periodsForBars.length){
       const xW = d3.scaleBand()
         .domain(periodsForBars.map(d => d.label))
-        .range([10, waterfallW - 10])
+        .range([rightPlotX0, rightPlotX1])
         .padding(0.26);
       const maxW = Math.max(0.001, d3.max(periodsForBars, d => d.total) || 0.001);
-      const yW = d3.scaleLinear().domain([0, maxW]).range([bottomH - 20, 44]).nice(3);
+      const yW = d3.scaleLinear().domain([0, maxW]).range([rightPlotY1, rightPlotY0]).nice(3);
 
-      let legendX = 10;
-      let legendY = 26;
-      for (const tech of selectedTechs.slice(0, 4)){
-        waterfallPanel.append("circle")
-          .attr("cx", legendX + 4)
-          .attr("cy", legendY)
-          .attr("r", 3)
-          .attr("fill", techColor(tech.id));
-        waterfallPanel.append("text")
-          .attr("class", "trendWaterfallLegend")
-          .attr("x", legendX + 10)
-          .attr("y", legendY + 3)
-          .text(tech.name);
-        legendX += 116;
-        if (legendX > waterfallW - 110){
-          legendX = 10;
-          legendY += 12;
-        }
-      }
-      if (selectedTechs.length > 4){
-        waterfallPanel.append("text")
-          .attr("class", "trendWaterfallLegend")
-          .attr("x", legendX)
-          .attr("y", legendY + 3)
-          .text(`+${selectedTechs.length - 4} more`);
-      }
+      bottomRightPanel.append("g")
+        .attr("class", "trendPanelAxis")
+        .attr("transform", "translate(28,0)")
+        .call(d3.axisLeft(yW).ticks(3).tickFormat(v => `${d3.format(".1f")(v)}b`));
+
+      bottomRightPanel.append("g")
+        .attr("class", "trendPanelAxis")
+        .attr("transform", `translate(0,${rightPlotY1})`)
+        .call(d3.axisBottom(xW).tickFormat(d => String(d || "").replace("->", "→")));
 
       for (const d of periodsForBars){
         const xBase = xW(d.label) || 0;
@@ -2115,35 +2117,70 @@
           if (v <= 0) continue;
           const yStart = yW(cum);
           const yEnd = yW(cum + v);
-          waterfallPanel.append("rect")
+          bottomRightPanel.append("rect")
             .attr("x", xBase)
             .attr("y", yEnd)
             .attr("width", bandW)
             .attr("height", Math.max(0, yStart - yEnd))
             .attr("fill", techColor(tech.id))
-            .attr("opacity", 0.88);
+            .attr("opacity", 0.88)
+            .on("mousemove", (ev) => showTrendTechTooltip(ev, d.label, tech.name, v, d.total))
+            .on("mouseleave", hideTooltip);
           cum += v;
         }
-
-        waterfallPanel.append("text")
+        bottomRightPanel.append("text")
           .attr("class", "trendStackTotal")
           .attr("x", xBase + (bandW / 2))
           .attr("y", yW(d.total) - 4)
           .attr("text-anchor", "middle")
           .text(`${d3.format(".2f")(d.total)}b`);
-        waterfallPanel.append("text")
-          .attr("class", "trendPeriodLabel")
-          .attr("x", xBase + (bandW / 2))
-          .attr("y", bottomH - 6)
-          .attr("text-anchor", "middle")
-          .text(String(d.label).replace("->", "→"));
       }
+
+      const visibleLegendTechs = selectedTechs.slice(0, 4);
+      const legendRows = visibleLegendTechs.map(t => ({
+        color: techColor(t.id),
+        label: String(t.name || "").length > 25 ? `${String(t.name || "").slice(0, 22)}…` : String(t.name || "")
+      }));
+      if (selectedTechs.length > 4){
+        legendRows.push({ color: "rgba(100,116,139,.95)", label: `+${selectedTechs.length - 4} more` });
+      }
+      const legendW = 196;
+      const legendRowH = 12;
+      const legendPad = 8;
+      const legendH = (legendRows.length * legendRowH) + (2 * legendPad);
+      const legendX = rightPlotX0 + 34;
+      const legendY = rightPlotY0 + 2;
+      const techLegend = bottomRightPanel.append("g")
+        .attr("class", "trendLegendIn")
+        .attr("transform", `translate(${legendX},${legendY})`);
+
+      techLegend.append("rect")
+        .attr("class", "keyBg")
+        .attr("rx", 8)
+        .attr("ry", 8)
+        .attr("width", legendW)
+        .attr("height", legendH);
+
+      legendRows.forEach((row, i) => {
+        const y = legendPad + 4 + (i * legendRowH);
+        techLegend.append("circle")
+          .attr("cx", 6)
+          .attr("cy", y)
+          .attr("r", 3)
+          .attr("fill", row.color);
+        techLegend.append("text")
+          .attr("class", "trendWaterfallLegend")
+          .attr("x", 12)
+          .attr("y", y + 3)
+          .text(row.label);
+      });
+      techLegend.raise();
     } else {
-      waterfallPanel.append("text")
+      bottomRightPanel.append("text")
         .attr("class", "trendStackHint")
-        .attr("x", 10)
-        .attr("y", 34)
-        .text("No period decomposition without selected technologies.");
+        .attr("x", 0)
+        .attr("y", 30)
+        .text("No period technology split in this selection.");
     }
   }
 
