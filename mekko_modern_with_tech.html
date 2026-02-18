@@ -6,6 +6,27 @@
 <title>Annual Global Emissions — Mekko + Tech Potentials</title>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <style>
+  @font-face{
+    font-family:"NHDisplay65Medium";
+    src:url("neue-haas-grotesk-display-pro-cufonfonts/NeueHaasDisplayMediu.ttf") format("truetype");
+    font-style:normal;
+    font-weight:500;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"NHDisplay55Regular";
+    src:url("neue-haas-grotesk-display-pro-cufonfonts/NeueHaasDisplayRoman.ttf") format("truetype");
+    font-style:normal;
+    font-weight:400;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"NHText55Roman";
+    src:url("neue-haas-grotesk-display-pro-cufonfonts/NeueHaasDisplayRoman.ttf") format("truetype");
+    font-style:normal;
+    font-weight:400;
+    font-display:swap;
+  }
   :root {
     --bg0:#070A12; --bg1:#0B1220;
     --card: rgba(255,255,255,.06); --card2: rgba(255,255,255,.04);
@@ -13,9 +34,10 @@
     --text:#ECF3FF; --muted: rgba(236,243,255,.68); --muted2: rgba(236,243,255,.48);
     --shadow: 0 18px 60px rgba(0,0,0,.45); --shadow2: 0 10px 28px rgba(0,0,0,.30);
     --r: 18px; --r2: 14px;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --sans-body: "Neue Haas Grotesk Display 55 Roman", "Neue Haas Grotesk Display Pro", "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --sans-head: "Neue Haas Grotesk Display 65 Medium", "Neue Haas Grotesk Display Pro", "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: "NHText55Roman", "Neue Haas Text 55 Roman", "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans-body: "NHText55Roman", "Neue Haas Text 55 Roman", "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans-subtitle: "NHDisplay55Regular", "Neue Haas Grotesk Display 55 Roman", "Neue Haas Grotesk Display Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans-head: "NHDisplay65Medium", "Neue Haas Grotesk Display 65 Medium", "Neue Haas Grotesk Display Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
     --accent: #7C5CFF; --accent2:#35D7FF; --overlay:#9CA3AF;
     --bgGlow1: rgba(124,92,255,.30);
     --bgGlow2: rgba(53,215,255,.22);
@@ -44,7 +66,7 @@
   .topbar{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:14px;}
   .title{display:flex;flex-direction:column;gap:6px;max-width:920px;}
   h1{margin:0;font-size:22px;letter-spacing:.2px;font-weight:500;}
-  .subtitle{margin:0;color:var(--muted);font-size:13.5px;line-height:1.4;}
+  .subtitle{margin:0;color:var(--muted);font-size:13.5px;line-height:1;font-family:var(--sans-subtitle);}
   .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:0;border-radius:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;}
   .chip .k{color:var(--muted2);font-size:12px;font-weight:700;letter-spacing:.2px;}
@@ -135,9 +157,40 @@
   }
   .play:hover{color:var(--text);}
   .play:focus-visible{outline:1px solid var(--stroke2);outline-offset:2px;}
-  .play .dot{width:7px;height:7px;border-radius:999px;background:currentColor;box-shadow:none;}
+  .play .dot{
+    width:7px;
+    height:7px;
+    border-radius:999px;
+    background:currentColor;
+    box-shadow:none;
+    display:inline-block;
+    position:relative;
+    transition:all .16s ease;
+  }
+  .play.playing .dot{
+    width:8px;
+    height:8px;
+    border-radius:0;
+    background:transparent;
+  }
+  .play.playing .dot::before,
+  .play.playing .dot::after{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:2px;
+    border-radius:1px;
+    background:currentColor;
+  }
+  .play.playing .dot::before{left:1px;}
+  .play.playing .dot::after{right:1px;}
   .search,.select{width:100%;border-radius:12px;border:1px solid var(--stroke);background:rgba(0,0,0,.06);color:var(--text);padding:10px 10px;font-size:12px;outline:none;}
   .search,.select{box-sizing:border-box;}
+  .techChecklist{display:flex;flex-direction:column;gap:6px;max-height:170px;overflow:auto;padding:2px 1px;}
+  .techCheckItem{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.25;color:var(--text);}
+  .techCheckItem input{margin-top:1px;accent-color:#2563eb;}
+  .techCheckItem span{display:block;}
   .search{padding:8px 9px;font-size:11.5px;}
   [data-theme="light"] .search,[data-theme="light"] .select{background:rgba(255,255,255,.7);}
   .search::placeholder{color:var(--muted2);}
@@ -160,12 +213,34 @@
   .trendAxis text{fill:var(--muted);font-size:10px;font-family:var(--sans-body);}
   .trendGrid line{stroke:var(--stroke);stroke-dasharray:2 5;}
   .trendGrid path{display:none;}
+  .trendMainBg{fill:rgba(255,255,255,.28);stroke:var(--stroke);stroke-width:1;}
+  [data-theme="dark"] .trendMainBg{fill:rgba(0,0,0,.18);}
+  .trendSectionTitle{fill:var(--muted2);font-size:10px;letter-spacing:.25px;text-transform:uppercase;font-weight:700;}
   .trendLineBau{fill:none;stroke:rgba(100,116,139,.95);stroke-width:2;}
+  .trendLineTech{fill:none;stroke-width:1.35;stroke-dasharray:4 4;opacity:.5;}
   .trendLinePostTech{fill:none;stroke:rgba(37,99,235,.95);stroke-width:2.4;}
   [data-theme="light"] .trendLinePostTech{stroke:rgba(29,78,216,.95);}
   .trendArea{fill:rgba(148,163,184,.24);}
   .trendPointBau{fill:#ffffff;stroke:rgba(100,116,139,.95);stroke-width:1.4;}
   .trendPointPostTech{fill:#ffffff;stroke:rgba(37,99,235,.95);stroke-width:1.6;}
+  .trendStackLabel{fill:var(--muted2);font-size:10px;letter-spacing:.2px;text-transform:uppercase;font-weight:700;}
+  .trendStackTotal{fill:var(--muted);font-size:9px;font-family:var(--mono);}
+  .trendStackHint{fill:var(--muted2);font-size:10px;}
+  .trendPeriodLabel{fill:var(--muted);font-size:9px;}
+  .trendSubPanelBg{fill:rgba(255,255,255,.24);stroke:var(--stroke);stroke-width:1;}
+  [data-theme="dark"] .trendSubPanelBg{fill:rgba(0,0,0,.14);}
+  .trendSubTitle{fill:var(--muted2);font-size:10px;letter-spacing:.2px;text-transform:uppercase;font-weight:700;}
+  .trendPanelAxis path,.trendPanelAxis line{stroke:var(--stroke2);}
+  .trendPanelAxis text{fill:var(--muted2);font-size:9px;font-family:var(--sans-body);}
+  .trendWaterfallLegend{fill:var(--muted);font-size:8.5px;}
+  .trendWaterfallConnector{stroke:rgba(100,116,139,.7);stroke-width:1.1;stroke-dasharray:3 2;}
+  .trendWaterfallTotalLine{stroke:rgba(37,99,235,.65);stroke-width:1.2;}
+  .trendWaterfall .wfBg{fill:rgba(255,255,255,.68);stroke:none;}
+  [data-theme="dark"] .trendWaterfall .wfBg{fill:rgba(0,0,0,.28);}
+  .trendWaterfall .wfTitle{fill:var(--muted2);font-size:10px;letter-spacing:.2px;text-transform:uppercase;font-weight:700;}
+  .trendWaterfall .wfLabel{fill:var(--muted);font-size:8.5px;}
+  .trendWaterfall .wfTotal{fill:var(--muted);font-size:8.5px;font-family:var(--mono);}
+  .trendWaterfall .wfEmpty{fill:var(--muted2);font-size:10px;}
   .contribTable{width:100%;border-collapse:collapse;font-size:11px;}
   .contribTable th,.contribTable td{padding:6px 8px;border-bottom:1px solid var(--stroke);}
   .contribTable th{text-align:left;color:var(--muted2);font-size:10px;letter-spacing:.25px;text-transform:uppercase;}
@@ -226,7 +301,7 @@
       <h1>Annual Global Emissions</h1>
       <p class="subtitle">
         Emissions Mekko + <b>Decarbonization Technology</b> (gray hatched area). Tile areas remain proportional to absolute emissions (consistent scale across years and effort levels).
-        Select a technology to see where it applies and how big its estimated potential is.
+        Select one or more technologies to see where they apply and how big their combined estimated potential is.
       </p>
     </div>
     <div class="actions">
@@ -274,7 +349,7 @@
 
         <div class="panel">
           <h3>Decarbonization Technology</h3>
-          <select class="select" id="techSelect"></select>
+          <div class="techChecklist" id="techChecklist"></div>
           <div class="row" style="margin-top:10px;">
             <span class="pill" id="techPill">Overlay: Off</span>
           </div>
@@ -291,7 +366,7 @@
         <div class="panel">
           <h3>How to read the overlay</h3>
           <div class="hint">
-            The <b>hatched gray portion</b> is the selected technology’s abatement potential for each subsector at the current
+            The <b>hatched gray portion</b> is the selected technology set’s abatement potential for each subsector at the current
             horizon (<b>2025 view = by 2035</b>, <b>2035 view = by 2050</b>, <b>2050 view = post-2050</b>). Values come from the technology CSV,
             are displayed as a share of mapped reference-year emissions, and are always capped by each tile’s emissions.
           </div>
@@ -367,31 +442,235 @@
   );
   const DEFAULT_TECHS = JSON.parse(JSON.stringify(TECHS));
   const DEFAULT_TECH_BY_ID = new Map(DEFAULT_TECHS.map(t => [t.id, t]));
-  const NO_TECH = { id: "none", name: "(None) - show emissions only", tag: "Baseline", details_html: "Select a technology to overlay an indicative abatement potential on each tile.", sources: [] };
+  const NO_TECH = { id: "none", name: "(None) - show emissions only", tag: "Baseline", details_html: "Select one or more technologies to overlay indicative abatement potential on each tile.", sources: [] };
+
+  const TECH_COLOR_TEXT = `
+    # wind
+    onwind: "#235ebc"
+    onshore wind: "#235ebc"
+    offwind: "#6895dd"
+    offshore wind: "#6895dd"
+    offwind-ac: "#6895dd"
+    offshore wind (AC): "#6895dd"
+    offshore wind ac: "#6895dd"
+    offwind-dc: "#74c6f2"
+    offshore wind (DC): "#74c6f2"
+    offshore wind dc: "#74c6f2"
+    offwind-float: "#b5e2fa"
+    offshore wind (Float): "#b5e2fa"
+    offshore wind float: "#b5e2fa"
+    wind: "#235ebc"
+    # water
+    hydro: '#298c81'
+    hydro reservoir: '#298c81'
+    ror: '#3dbfb0'
+    run of river: '#3dbfb0'
+    hydroelectricity: '#298c81'
+    phs: '#51dbcc'
+    hydro+PHS: "#08ad97"
+    # solar
+    solar: "#f9d002"
+    solar pv: "#f9d002"
+    solar-hsat: "#fdb915"
+    solar thermal: '#ffbf2b'
+    solar rooftop: '#ffea80'
+    # gas
+    ocgt: '#e0986c'
+    gas boiler: '#db6a25'
+    gas: '#e05b09'
+    fossil gas: '#e05b09'
+    natural gas: '#e05b09'
+    ccgt: '#a85522'
+    # oil
+    oil: '#c9c9c9'
+    shipping oil: "#808080"
+    land transport oil: '#afafaf'
+    # nuclear
+    nuclear: '#ff8c00'
+    uranium: '#ff8c00'
+    # coal
+    coal: '#545454'
+    lignite: '#826837'
+    # biomass
+    biogas: '#e3d37d'
+    biomass: '#baa741'
+    solid biomass: '#baa741'
+    municipal solid waste: '#91ba41'
+    biomass to liquid: '#32CD32'
+    # power transmission
+    lines: '#6c9459'
+    transmission lines: '#6c9459'
+    electricity distribution grid: '#97ad8c'
+    low voltage: '#97ad8c'
+    # electricity demand
+    electric load: '#110d63'
+    electric demand: '#110d63'
+    electricity: '#110d63'
+    industry electricity: '#2d2a66'
+    agriculture electricity: '#494778'
+    # battery + EVs
+    battery: '#ace37f'
+    battery storage: '#ace37f'
+    home battery: '#80c944'
+    bev charger: '#baf238'
+    v2g: '#e5ffa8'
+    land transport ev: '#baf238'
+    # hot water storage
+    water tanks: '#e69487'
+    hot water storage: '#e69487'
+    # heat
+    heat: '#cc1f1f'
+    heat demand: '#cc1f1f'
+    heat pumps: '#2fb537'
+    heat pump: '#2fb537'
+    # hydrogen
+    h2: '#bf13a0'
+    hydrogen: '#bf13a0'
+    h2 electrolysis: '#ff29d9'
+    h2 fuel cell: '#c251ae'
+    h2 pipeline: '#f081dc'
+    # ammonia / methanol
+    nh3: '#46caf0'
+    ammonia: '#46caf0'
+    methanol: '#FF7B00'
+    shipping methanol: '#468c8b'
+    # co2
+    cc: '#f29dae'
+    ccs: '#f29dae'
+    co2: '#f29dae'
+    dac: '#ff5270'
+    # other
+    shipping: '#03a2ff'
+    geothermal: '#ba91b1'
+    waste: '#e3d37d'
+    other: '#000000'
+  `;
+
+  function normalizeTechColorKey(value){
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u2010-\u2015]/g, "-")
+      .replace(/[()]/g, " ")
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9#+\-\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function parseTechColorText(text){
+    const out = new Map();
+    for (const rawLine of String(text || "").split("\n")){
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const i = line.indexOf(":");
+      if (i <= 0) continue;
+      const rawKey = line.slice(0, i).trim();
+      const rawValue = line.slice(i + 1).trim();
+      const key = normalizeTechColorKey(rawKey);
+      const value = rawValue.replace(/^['"]|['"]$/g, "").trim();
+      if (!key) continue;
+      if (!value) continue;
+      if (value.startsWith("#")){
+        out.set(key, value);
+      } else if (/^[0-9a-fA-F]{3,8}$/.test(value)){
+        out.set(key, `#${value}`);
+      } else {
+        out.set(key, value.toLowerCase());
+      }
+    }
+    return out;
+  }
+
+  const TECH_COLOR_MAP = parseTechColorText(TECH_COLOR_TEXT);
+  const TECH_NAME_COLOR_ALIAS = new Map([
+    ["afforestation reforestation and managed land cdr", "biomass"],
+    ["afforestation reforestation managed land cdr", "biomass"],
+    ["beccs bioenergy + ccs", "biomass"],
+    ["beccs bioenergy ccs", "biomass"],
+    ["advanced sustainable biofuels", "biomass to liquid"],
+    ["ccs in industry", "ccs"],
+    ["daccs", "dac"],
+    ["grid scale energy storage", "battery storage"],
+    ["green hydrogen", "hydrogen"],
+    ["green steel h2-dri eaf", "h2"],
+    ["green steel h2 dri eaf", "h2"],
+    ["low carbon cement", "ccs"],
+    ["methane mitigation", "natural gas"],
+    ["green ammonia methanol shipping", "shipping methanol"],
+    ["solar pv", "solar pv"],
+    ["sustainable proteins", "other"],
+    ["zero emission trucking", "land transport ev"],
+    ["wind", "wind"]
+  ]);
+
+  function colorFromString(input){
+    let h = 0;
+    const s = String(input || "");
+    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    const hue = Math.abs(h) % 360;
+    return d3.hsl(hue, 0.62, 0.54).formatHex();
+  }
+
+  function getTechnologyColor(tech){
+    if (!tech) return "#94a3b8";
+    const nameKey = normalizeTechColorKey(tech.name || "");
+    const idKey = normalizeTechColorKey(tech.id || "");
+    const tagKey = normalizeTechColorKey(tech.tag || "");
+    const aliasKey = TECH_NAME_COLOR_ALIAS.get(nameKey);
+    const candidates = [
+      aliasKey,
+      nameKey,
+      idKey,
+      tagKey,
+      nameKey.replace(/\+/g, " ").replace(/\band\b/g, " ").replace(/\s+/g, " ").trim(),
+      nameKey.replace(/^green\s+/, ""),
+      nameKey.replace(/^low[-\s]+carbon\s+/, ""),
+      nameKey.replace(/^advanced\s+/, ""),
+      nameKey.replace(/^zero[-\s]+emission\s+/, "")
+    ].filter(Boolean);
+
+    for (const key of candidates){
+      if (TECH_COLOR_MAP.has(key)) return TECH_COLOR_MAP.get(key);
+    }
+    for (const key of TECH_COLOR_MAP.keys()){
+      if (nameKey.includes(key) || idKey.includes(key)) return TECH_COLOR_MAP.get(key);
+    }
+    return colorFromString(nameKey || idKey || "tech");
+  }
+
+  const TEMPLATE_VARIANTS = (filename) => [
+    `template/${filename}`,
+    `./template/${filename}`,
+    `/template/${filename}`,
+    filename
+  ];
+  const ABS_TEMPLATE_ROOT = "/Users/tlm2160/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research 2/CKI/mekko/template";
 
   const EMISSIONS_DATA_PATHS = (
     window.location.protocol === "file:"
       ? [
-          "/Users/tlm2160/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research 2/CKI/mekko/template/emissions_from_ngfs_btco2e.csv",
-          "template/emissions_from_ngfs_btco2e.csv"
+          `${ABS_TEMPLATE_ROOT}/emissions_from_ngfs_btco2e.csv`,
+          ...TEMPLATE_VARIANTS("emissions_from_ngfs_btco2e.csv")
         ]
-      : [
-          "template/emissions_from_ngfs_btco2e.csv"
-        ]
+      : TEMPLATE_VARIANTS("emissions_from_ngfs_btco2e.csv")
   );
   const BAU_DATA_PATHS = (
     window.location.protocol === "file:"
       ? [
-          "/Users/tlm2160/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research 2/CKI/mekko/template/BAU_emissions.csv",
-          "template/BAU_emissions.csv"
+          `${ABS_TEMPLATE_ROOT}/BAU_emissions.csv`,
+          ...TEMPLATE_VARIANTS("BAU_emissions.csv")
         ]
-      : [
-          "template/BAU_emissions.csv"
-        ]
+      : TEMPLATE_VARIANTS("BAU_emissions.csv")
   );
-  const TECH_OVERLAY_PATHS = [
-    "template/technology_overlay.csv"
-  ];
+  const TECH_OVERLAY_PATHS = (
+    window.location.protocol === "file:"
+      ? [
+          `${ABS_TEMPLATE_ROOT}/technology_overlay.csv`,
+          ...TEMPLATE_VARIANTS("technology_overlay.csv")
+        ]
+      : TEMPLATE_VARIANTS("technology_overlay.csv")
+  );
 
   let TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
   let BAU_FALLBACK_TOTAL_BY_YEAR = new Map();
@@ -416,7 +695,7 @@
     if (encoded !== path) candidates.push(encoded);
     try { candidates.push(new URL(path, window.location.href).href); } catch {}
     try { candidates.push(new URL(encoded, window.location.href).href); } catch {}
-    if (path.startsWith("/")) candidates.push(`file://${encoded}`);
+    if (window.location.protocol === "file:" && path.startsWith("/")) candidates.push(`file://${encoded}`);
     return [...new Set(candidates)];
   }
 
@@ -436,13 +715,15 @@
     return requiredColumns.every(c => keys.has(String(c).trim().toLowerCase()));
   }
 
-  function loadTextViaXHR(url){
+  function loadTextViaXHR(url, timeoutMs = 1800){
     return new Promise((resolve, reject) => {
       try {
         const xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
+        xhr.timeout = timeoutMs;
         xhr.onload = () => (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) ? resolve(xhr.responseText) : reject(new Error(`XHR status ${xhr.status}`));
         xhr.onerror = () => reject(new Error("XHR failed"));
+        xhr.ontimeout = () => reject(new Error("XHR timeout"));
         xhr.send();
       } catch (err){
         reject(err);
@@ -450,26 +731,32 @@
     });
   }
 
-  function loadTextViaIframe(url){
+  function loadTextViaIframe(url, timeoutMs = 1800){
     return new Promise((resolve, reject) => {
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
+      let done = false;
+      const finish = (fn) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        iframe.remove();
+        fn();
+      };
+      const timer = setTimeout(() => finish(() => reject(new Error("Iframe timeout"))), timeoutMs);
       iframe.src = url;
       iframe.onload = () => {
         try {
           const doc = iframe.contentDocument;
           const txt = (doc?.body?.textContent || doc?.documentElement?.textContent || "").trim();
-          iframe.remove();
-          if (!txt) reject(new Error("Iframe empty response"));
-          else resolve(txt);
+          if (!txt) finish(() => reject(new Error("Iframe empty response")));
+          else finish(() => resolve(txt));
         } catch (err){
-          iframe.remove();
-          reject(err);
+          finish(() => reject(err));
         }
       };
       iframe.onerror = () => {
-        iframe.remove();
-        reject(new Error("Iframe failed"));
+        finish(() => reject(new Error("Iframe failed")));
       };
       document.body.appendChild(iframe);
     });
@@ -499,12 +786,18 @@
         } catch (err){
           lastErr = err;
         }
-        try {
-          const txt = await loadTextViaIframe(candidate);
-          const rows = parseCsvTextMaybe(txt);
-          if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "iframe" };
-        } catch (err){
-          lastErr = err;
+        const shouldTryIframe = (
+          window.location.protocol === "file:" ||
+          String(candidate).startsWith("file://")
+        );
+        if (shouldTryIframe){
+          try {
+            const txt = await loadTextViaIframe(candidate);
+            const rows = parseCsvTextMaybe(txt);
+            if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "iframe" };
+          } catch (err){
+            lastErr = err;
+          }
         }
       }
     }
@@ -768,7 +1061,7 @@
   const btnViewDecarbOnly = document.getElementById("btnViewDecarbOnly");
   const exportBtn = document.getElementById("exportBtn");
   const search = document.getElementById("search");
-  const techSelect = document.getElementById("techSelect");
+  const techChecklist = document.getElementById("techChecklist");
 
   const selLabel = document.getElementById("selLabel");
   const techLabel = document.getElementById("techLabel");
@@ -787,6 +1080,7 @@
   const chipTechData = document.getElementById("chipTechData");
   const contribBody = document.getElementById("contribBody");
   const footerTechSources = document.getElementById("footerTechSources");
+  const trendCard = document.getElementById("trendCard");
   const trendSvg = d3.select("#trendChart");
   const trendHint = document.getElementById("trendHint");
 
@@ -869,44 +1163,122 @@
     playing: false,
     timer: null,
     query: "",
-    techId: "none",
+    techIds: [],
     viewMode: "both"
   };
 
   function refreshTechSelectOptions(){
-    techSelect.innerHTML = "";
+    if (!techChecklist) return;
+    techChecklist.innerHTML = "";
     for (const t of TECHS) {
-      const opt = document.createElement("option");
-      opt.value = t.id;
-      opt.textContent = t.name;
-      techSelect.appendChild(opt);
+      if (t.id === "none") continue;
+      const label = document.createElement("label");
+      label.className = "techCheckItem";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = t.id;
+      input.dataset.techId = t.id;
+      const text = document.createElement("span");
+      text.textContent = t.name;
+      label.appendChild(input);
+      label.appendChild(text);
+      techChecklist.appendChild(label);
+    }
+    syncTechSelectFromState();
+  }
+
+  function normalizeTechIds(ids){
+    const valid = new Set(TECHS.filter(t => t.id !== "none").map(t => t.id));
+    const out = [];
+    for (const id of (ids || [])){
+      const nextId = String(id || "").trim();
+      if (!nextId || !valid.has(nextId) || out.includes(nextId)) continue;
+      out.push(nextId);
+    }
+    return out;
+  }
+
+  function getSelectedTechs(){
+    const ids = normalizeTechIds(STATE.techIds);
+    return ids.map(id => TECHS.find(t => t.id === id)).filter(Boolean);
+  }
+
+  function getSelectedTechLabel(){
+    const selected = getSelectedTechs();
+    if (!selected.length) return "None";
+    if (selected.length === 1) return selected[0].name;
+    return `${selected[0].name} +${selected.length - 1}`;
+  }
+
+  function syncTechSelectFromState(){
+    if (!techChecklist) return;
+    const idSet = new Set(normalizeTechIds(STATE.techIds));
+    const checks = techChecklist ? Array.from(techChecklist.querySelectorAll("input[type='checkbox'][data-tech-id]")) : [];
+    for (const check of checks){
+      check.checked = idSet.has(check.value);
     }
   }
 
-  function getTech(){ return TECHS.find(t => t.id === STATE.techId) || TECHS[0] || NO_TECH; }
+  function collectSourcesFromSelectedTechs(selected){
+    const out = [];
+    const seen = new Set();
+    for (const t of selected || []){
+      for (const s of (t.sources || [])){
+        const label = String(s.label || "").trim();
+        const url = String(s.url || "").trim();
+        if (!label || !url) continue;
+        const key = `${label}|||${url}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ label, url });
+      }
+    }
+    return out;
+  }
 
   function updateTechPanel(){
-    const t = getTech();
-    techLabel.textContent = (t.id === "none") ? "None" : t.name;
-      techPill.textContent = (t.id === "none") ? "Overlay status: Off" : "Overlay status: Active";
-    techDetails.innerHTML = t.details_html || "";
-    if (t.sources && t.sources.length){
+    const selected = getSelectedTechs();
+    techLabel.textContent = getSelectedTechLabel();
+    techPill.textContent = selected.length ? `Overlay status: Active (${selected.length})` : "Overlay status: Off";
+
+    if (!selected.length){
+      techDetails.innerHTML = NO_TECH.details_html || "";
+      techSources.innerHTML = "";
+      return;
+    }
+
+    if (selected.length === 1){
+      const t = selected[0];
+      techDetails.innerHTML = t.details_html || "";
+    } else {
+      techDetails.innerHTML =
+        `<b>${selected.length} technologies selected.</b> Overlay and abatement are stacked across all selected technologies, capped by each tile's emissions.` +
+        `<ul style='margin:8px 0 0 18px;padding:0;'>${selected.map(t => `<li style='margin:4px 0;'>${t.name}</li>`).join("")}</ul>`;
+    }
+
+    const combinedSources = collectSourcesFromSelectedTechs(selected);
+    if (combinedSources.length){
       techSources.innerHTML =
         "<div style='margin-top:10px;color:var(--muted2);font-weight:900;letter-spacing:.2px;text-transform:uppercase;font-size:11px;'>Sources</div>" +
         "<ul style='margin:6px 0 0 18px;padding:0;'>" +
-        t.sources.map(s => `<li style='margin:6px 0;'><a href='${s.url}' target='_blank' rel='noopener noreferrer'>${s.label}</a></li>`).join("") +
+        combinedSources.map(s => `<li style='margin:6px 0;'><a href='${s.url}' target='_blank' rel='noopener noreferrer'>${s.label}</a></li>`).join("") +
         "</ul>";
     } else {
       techSources.innerHTML = "";
     }
   }
 
-  techSelect.addEventListener("change", (e)=>{
-    STATE.techId = e.target.value;
-    stopPlay();
-    updateTechPanel();
-    render();
-  });
+  if (techChecklist){
+    techChecklist.addEventListener("change", (e)=>{
+      const target = e.target;
+      if (!target || target.tagName !== "INPUT" || target.type !== "checkbox") return;
+      const selected = Array.from(techChecklist.querySelectorAll("input[type='checkbox'][data-tech-id]:checked")).map(el => el.value);
+      STATE.techIds = normalizeTechIds(selected);
+      stopPlay();
+      updateTechPanel();
+      render();
+    });
+  }
 
   function buildColorMap(){
     const map = new Map();
@@ -928,11 +1300,13 @@
     STATE.playing = false;
     if (STATE.timer) clearInterval(STATE.timer);
     STATE.timer = null;
+    playBtn.classList.remove("playing");
     playText.textContent = "Play";
   }
   function startPlay(){
     if (STATE.playing) return;
     STATE.playing = true;
+    playBtn.classList.add("playing");
     playText.textContent = "Pause";
     STATE.timer = setInterval(() => {
       STATE.yearIndex = (STATE.yearIndex + 1) % YEARS.length;
@@ -973,12 +1347,27 @@
 
   search.addEventListener("input", (e)=> { STATE.query = (e.target.value || "").trim().toLowerCase(); render(); });
 
+  function resolveEmissionsTierForEffort(tier, year){
+    const effort = String(tier || "").toLowerCase();
+    if (effort !== "low" && effort !== "high") return effort;
+    const y = String(year);
+    const lowRows = (DATA.low && DATA.low[y]) ? DATA.low[y] : [];
+    const highRows = (DATA.high && DATA.high[y]) ? DATA.high[y] : [];
+
+    if (lowRows.length && highRows.length){
+      const lowTotal = lowRows.reduce((s, r) => s + Math.max(0, +r.emissions || 0), 0);
+      const highTotal = highRows.reduce((s, r) => s + Math.max(0, +r.emissions || 0), 0);
+      const highEmissionsTier = (lowTotal >= highTotal) ? "low" : "high";
+      const lowEmissionsTier = (highEmissionsTier === "low") ? "high" : "low";
+      return effort === "low" ? highEmissionsTier : lowEmissionsTier;
+    }
+    if (lowRows.length) return "low";
+    if (highRows.length) return "high";
+    return effort;
+  }
+
   function getRows(tier, year){
-    const emissionsTier = (String(tier || "").toLowerCase() === "low")
-      ? "high"
-      : (String(tier || "").toLowerCase() === "high")
-        ? "low"
-        : String(tier || "").toLowerCase();
+    const emissionsTier = resolveEmissionsTierForEffort(tier, year);
     const rows = (DATA[emissionsTier] && DATA[emissionsTier][String(year)]) ? DATA[emissionsTier][String(year)] : [];
     const byKey = new Map(rows.map(r => [`${r.category}|||${r.sub}`, +r.emissions ]));
     const out = [];
@@ -1162,38 +1551,85 @@
     return tech;
   }
 
-  function computeTechAbatement(rows, year, overlayWindow = getOverlayWindow(year)){
-    const tech = getTech();
+  function getOverlayValueForCell(mapMid, techId, tier, row, targetYearKeys, targetTimeKeys){
+    const keyCandidates = [];
+    for (const yk of targetYearKeys){
+      for (const tk of targetTimeKeys){
+        keyCandidates.push(`${techId}|||${tier}|||${yk}|||${tk}|||${row.category}|||${row.sub}`);
+      }
+    }
+    keyCandidates.push(`${techId}|||${tier}|||*|||*|||${row.category}|||${row.sub}`);
+    for (const k of [...new Set(keyCandidates)]){
+      const candidate = Math.max(0, +mapMid.get(k) || 0);
+      if (candidate > 0) return candidate;
+    }
+    return 0;
+  }
+
+  function resolveOverlayTierForEffort(effortTier, techId, overlayWindow, mapMid){
+    const effort = String(effortTier || "").toLowerCase();
+    if (effort !== "low" && effort !== "high") return effort;
+    if (!techId || techId === "none") return effort;
+
+    const targetYearKeys = overlayWindow?.targetYearKeys || ["*"];
+    const targetTimeKeys = overlayWindow?.targetTimeKeys || ["*"];
+    let lowTotal = 0;
+    let highTotal = 0;
+
+    for (const category of CAT_ORDER){
+      for (const sub of (SUB_ORDER_BY_CAT[category] || [])){
+        const row = { category, sub };
+        lowTotal += getOverlayValueForCell(mapMid, techId, "low", row, targetYearKeys, targetTimeKeys);
+        highTotal += getOverlayValueForCell(mapMid, techId, "high", row, targetYearKeys, targetTimeKeys);
+      }
+    }
+
+    if (lowTotal > 0 && highTotal > 0){
+      const highEffortTier = (highTotal >= lowTotal) ? "high" : "low";
+      const lowEffortTier = (highEffortTier === "high") ? "low" : "high";
+      return effort === "low" ? lowEffortTier : highEffortTier;
+    }
+    if (lowTotal > 0) return "low";
+    if (highTotal > 0) return "high";
+    return effort;
+  }
+
+  function computeTechAbatementForTech(rows, year, overlayWindow, tech){
     const out = new Map();
     if (!tech || tech.id === "none") return out;
-    const tier = STATE.tier;
+    const effortTier = STATE.tier;
     const mapMid = TECH_OVERLAY_MAPS.mid || new Map();
     const targetYearKeys = overlayWindow?.targetYearKeys || [String(year), "*"];
     const targetTimeKeys = overlayWindow?.targetTimeKeys || [yearTimeKey(year).toLowerCase(), "*"];
+    const overlayTier = resolveOverlayTierForEffort(effortTier, tech.id, overlayWindow, mapMid);
     let foundAny = false;
     for (const row of rows){
       const cellKey = `${row.category}|||${row.sub}`;
-      const keyCandidates = [];
-      for (const yk of targetYearKeys){
-        for (const tk of targetTimeKeys){
-          keyCandidates.push(`${tech.id}|||${tier}|||${yk}|||${tk}|||${row.category}|||${row.sub}`);
-        }
-      }
-      keyCandidates.push(`${tech.id}|||${tier}|||*|||*|||${row.category}|||${row.sub}`);
-      let value = 0;
-      for (const k of [...new Set(keyCandidates)]){
-        const candidate = Math.max(0, +mapMid.get(k) || 0);
-        if (candidate > 0){
-          value = candidate;
-          foundAny = true;
-          break;
-        }
-      }
+      const value = getOverlayValueForCell(mapMid, tech.id, overlayTier, row, targetYearKeys, targetTimeKeys);
+      if (value > 0) foundAny = true;
       if (value > 0) out.set(cellKey, Math.min(row.emissions, value));
     }
     if (!foundAny){
       const fallbackTech = resolveFallbackTech(tech);
       return computeTechAbatementFromRules(rows, overlayWindow?.rulesYear || year, fallbackTech);
+    }
+    return out;
+  }
+
+  function computeTechAbatement(rows, year, overlayWindow = getOverlayWindow(year)){
+    const selected = getSelectedTechs();
+    const out = new Map();
+    if (!selected.length) return out;
+    const emissionsByKey = new Map(rows.map(r => [`${r.category}|||${r.sub}`, Math.max(0, +r.emissions || 0)]));
+
+    for (const tech of selected){
+      const oneTech = computeTechAbatementForTech(rows, year, overlayWindow, tech);
+      for (const [key, value] of oneTech.entries()){
+        const cap = emissionsByKey.get(key) || 0;
+        if (cap <= 0) continue;
+        const next = Math.min(cap, (out.get(key) || 0) + Math.max(0, +value || 0));
+        out.set(key, next);
+      }
     }
     return out;
   }
@@ -1227,6 +1663,24 @@
     tooltip.style("left", `${x}px`).style("top", `${y}px`);
   }
   function hideTooltip(){ tooltip.style("opacity", 0).style("transform","translateY(6px)").attr("aria-hidden","true"); }
+
+  function showTrendSubsectorTooltip(ev, periodLabel, category, sub, bt, periodTotal){
+    const share = periodTotal > 0 ? bt / periodTotal : 0;
+    const html = `
+      <div class="ttTop"><span>${sub}</span><span>${periodLabel.replace("->", "→")}</span></div>
+      <div class="ttSub">${category}</div>
+      <div class="ttGrid">
+        <div>Abatement in period</div><div>${fmtBt2(bt)} Bt</div>
+        <div>Share of period</div><div>${fmtPct(share)}</div>
+      </div>`;
+    tooltip.html(html).style("opacity", 1).style("transform","translateY(0px)").attr("aria-hidden","false");
+    const pad = 14;
+    const bb = tooltip.node().getBoundingClientRect();
+    let x = ev.clientX + pad, y = ev.clientY + pad;
+    if (x + bb.width > window.innerWidth - 10) x = ev.clientX - bb.width - pad;
+    if (y + bb.height > window.innerHeight - 10) y = ev.clientY - bb.height - pad;
+    tooltip.style("left", `${x}px`).style("top", `${y}px`);
+  }
 
   function wrapLabelLines(text, maxWidth){
     const clean = String(text || "").trim();
@@ -1266,8 +1720,8 @@
 
   function updateContributors(rows, techMap, refByKey, refYear){
     if (!contribBody) return;
-    if (STATE.techId === "none"){
-      contribBody.innerHTML = `<tr><td colspan="3" class="contribEmpty">Select a technology to view top subsectors for abatement.</td></tr>`;
+    if (!getSelectedTechs().length){
+      contribBody.innerHTML = `<tr><td colspan="3" class="contribEmpty">Select one or more technologies to view top subsectors for abatement.</td></tr>`;
       return;
     }
     const items = [];
@@ -1290,15 +1744,59 @@
       .join("");
   }
 
+  function allocateAbatementForSelection(rows, year, overlayWindow, selectedTechs){
+    const byCellResidual = new Map();
+    for (const r of rows || []){
+      byCellResidual.set(`${r.category}|||${r.sub}`, Math.max(0, +r.emissions || 0));
+    }
+    const bySector = new Map();
+    const bySubsector = new Map();
+    const byTechTotal = new Map();
+    if (!(selectedTechs || []).length) return { total: 0, bySector, bySubsector, byTechTotal };
+
+    for (const tech of selectedTechs){
+      const techMap = computeTechAbatementForTech(rows, year, overlayWindow, tech);
+      let techTotal = 0;
+      for (const [cellKey, rawValue] of techMap.entries()){
+        const remaining = Math.max(0, +(byCellResidual.get(cellKey) || 0));
+        if (remaining <= 0) continue;
+        const use = Math.max(0, Math.min(remaining, +rawValue || 0));
+        if (use <= 0) continue;
+        byCellResidual.set(cellKey, remaining - use);
+        techTotal += use;
+        const category = String(cellKey).split("|||")[0];
+        bySector.set(category, (bySector.get(category) || 0) + use);
+        bySubsector.set(cellKey, (bySubsector.get(cellKey) || 0) + use);
+      }
+      byTechTotal.set(tech.id, techTotal);
+    }
+
+    let total = 0;
+    for (const r of rows || []){
+      const key = `${r.category}|||${r.sub}`;
+      const start = Math.max(0, +r.emissions || 0);
+      const rem = Math.max(0, +(byCellResidual.get(key) || 0));
+      total += Math.max(0, start - rem);
+    }
+    return { total, bySector, bySubsector, byTechTotal };
+  }
+
   function renderMitigationTrend(){
-    const tech = getTech();
+    const selectedTechs = getSelectedTechs();
+    const hasTechSelection = selectedTechs.length > 0;
     const tier = STATE.tier;
     const effortLabel = (String(tier).toLowerCase() === "low") ? "LOW" : "HIGH";
     const Wt = 1180;
-    const Ht = 190;
-    const m = { top: 12, right: 14, bottom: 30, left: 56 };
+    const Ht = hasTechSelection ? 360 : 205;
+    const m = { top: 12, right: 14, bottom: 14, left: 56 };
     const iw = Wt - m.left - m.right;
     const ih = Ht - m.top - m.bottom;
+    const mainH = 154;
+    const bottomTop = mainH + 28;
+    const bottomH = Math.max(110, ih - bottomTop);
+    const splitGap = 12;
+    const stackW = Math.max(360, Math.floor(iw * 0.62));
+    const waterfallW = Math.max(250, iw - stackW - splitGap);
 
     const years = [...YEARS].map(y => +y).filter(Number.isFinite).sort((a, b) => a - b);
     if (!years.length){
@@ -1307,59 +1805,121 @@
       return;
     }
 
-    // Period deltas are derived from the prior display-year horizon mapping:
-    // 2025->2035, 2035->2050, 2050->post-2050.
     const deltaByYear = new Map();
-    if (years.length) deltaByYear.set(years[0], 0);
-    if (tech.id !== "none"){
-      for (let i = 1; i < years.length; i++){
-        const prevYear = years[i - 1];
-        const prevRows = getRows(tier, prevYear);
-        const prevRef = buildReferenceEmissionState(tier, prevYear);
-        const deltaMap = computeTechAbatement(prevRows, prevYear, prevRef.overlayWindow);
-        const delta = Array.from(deltaMap.values()).reduce((sum, v) => sum + Math.max(0, +v || 0), 0);
-        deltaByYear.set(years[i], delta);
+    const techDeltaByYear = new Map(selectedTechs.map(t => [t.id, new Map()]));
+    const periodBreakdown = [];
+
+    if (years.length){
+      deltaByYear.set(years[0], 0);
+      for (const tech of selectedTechs){
+        techDeltaByYear.get(tech.id).set(years[0], 0);
       }
-    } else {
-      for (let i = 1; i < years.length; i++) deltaByYear.set(years[i], 0);
     }
 
+    if (hasTechSelection){
+      for (let i = 1; i < years.length; i++){
+        const prevYear = years[i - 1];
+        const nextYear = years[i];
+        const prevRows = getRows(tier, prevYear);
+        const prevRef = buildReferenceEmissionState(tier, prevYear);
+        const allocation = allocateAbatementForSelection(prevRows, prevYear, prevRef.overlayWindow, selectedTechs);
+        deltaByYear.set(nextYear, allocation.total);
+        periodBreakdown.push({
+          label: `${prevYear}->${prevRef.overlayWindow?.targetLabel || nextYear}`,
+          total: allocation.total,
+          byTech: allocation.byTechTotal,
+          bySector: allocation.bySector,
+          bySubsector: allocation.bySubsector
+        });
+        for (const tech of selectedTechs){
+          techDeltaByYear.get(tech.id).set(nextYear, allocation.byTechTotal.get(tech.id) || 0);
+        }
+      }
+
+      const lastYear = years[years.length - 1];
+      const postWindow = getOverlayWindow(lastYear);
+      if (String(postWindow?.targetLabel || "").toLowerCase().includes("post")){
+        const lastRows = getRows(tier, lastYear);
+        const postAllocation = allocateAbatementForSelection(lastRows, lastYear, postWindow, selectedTechs);
+        periodBreakdown.push({
+          label: `${lastYear}->post`,
+          total: postAllocation.total,
+          byTech: postAllocation.byTechTotal,
+          bySector: postAllocation.bySector,
+          bySubsector: postAllocation.bySubsector
+        });
+      }
+    } else {
+      for (let i = 1; i < years.length; i++){
+        deltaByYear.set(years[i], 0);
+      }
+    }
+
+    const bauByYear = new Map();
     let cumulative = 0;
     const series = years.map((year, idx) => {
+      const bauRaw = BAU_TOTAL_BY_YEAR.has(year) ? BAU_TOTAL_BY_YEAR.get(year) : BAU_FALLBACK_TOTAL_BY_YEAR.get(year);
+      const bau = Math.max(0, +(bauRaw || 0));
+      bauByYear.set(year, bau);
       if (idx === 0){
         cumulative = 0;
       } else {
         cumulative += Math.max(0, +(deltaByYear.get(year) || 0));
       }
-      const bauRaw = BAU_TOTAL_BY_YEAR.has(year) ? BAU_TOTAL_BY_YEAR.get(year) : BAU_FALLBACK_TOTAL_BY_YEAR.get(year);
-      const bau = Math.max(0, +(bauRaw || 0));
       const postTech = Math.max(0, bau - cumulative);
       return { year, bau, postTech, cumulativeAbatement: cumulative, intervalDelta: deltaByYear.get(year) || 0 };
+    });
+
+    const perTechSeries = selectedTechs.map((tech) => {
+      const deltas = techDeltaByYear.get(tech.id) || new Map();
+      let techCum = 0;
+      const values = years.map((year, idx) => {
+        if (idx === 0){
+          techCum = 0;
+        } else {
+          techCum += Math.max(0, +(deltas.get(year) || 0));
+        }
+        const bau = Math.max(0, +(bauByYear.get(year) || 0));
+        return { year, postTech: Math.max(0, bau - techCum) };
+      });
+      return { tech, values };
     });
 
     trendSvg.selectAll("*").remove();
     trendSvg.attr("viewBox", `0 0 ${Wt} ${Ht}`);
 
-    const maxY = Math.max(1, d3.max(series, d => Math.max(d.bau, d.postTech)) || 1) * 1.08;
-    const x = d3.scalePoint().domain(series.map(d => d.year)).range([0, iw]).padding(0.25);
-    const y = d3.scaleLinear().domain([0, maxY]).range([ih, 0]).nice(4);
+    const maxYFromTech = d3.max(perTechSeries, s => d3.max(s.values, d => d.postTech) || 0) || 0;
+    const maxY = Math.max(
+      1,
+      d3.max(series, d => Math.max(d.bau, d.postTech)) || 1,
+      maxYFromTech
+    ) * 1.08;
+    const x = d3.scalePoint().domain(series.map(d => d.year)).range([18, iw - 18]).padding(0.25);
+    const y = d3.scaleLinear().domain([0, maxY]).range([mainH, 0]).nice(4);
 
     const gTrend = trendSvg.append("g").attr("transform", `translate(${m.left},${m.top})`);
+    gTrend.append("text")
+      .attr("class", "trendSectionTitle")
+      .attr("x", 8)
+      .attr("y", 14)
+      .text("Global Emissions Paths (Bt)");
+
     gTrend.append("g")
       .attr("class", "trendGrid")
-      .call(d3.axisLeft(y).ticks(4).tickSize(-iw).tickFormat(""));
+      .call(d3.axisLeft(y).ticks(5).tickSize(-iw).tickFormat(""));
 
     gTrend.append("g")
       .attr("class", "trendAxis")
-      .attr("transform", `translate(0,${ih})`)
+      .attr("transform", `translate(0,${mainH})`)
       .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
     gTrend.append("g")
       .attr("class", "trendAxis")
-      .call(d3.axisLeft(y).ticks(4).tickFormat(v => `${d3.format(".1f")(v)}b`));
+      .call(d3.axisLeft(y).ticks(5).tickFormat(v => `${d3.format(".1f")(v)}b`));
 
     const lineBau = d3.line().x(d => x(d.year)).y(d => y(d.bau));
     const linePostTech = d3.line().x(d => x(d.year)).y(d => y(d.postTech));
+    const lineTech = d3.line().x(d => x(d.year)).y(d => y(d.postTech));
     const areaMitigated = d3.area()
       .x(d => x(d.year))
       .y0(d => y(d.bau))
@@ -1373,7 +1933,18 @@
       .attr("cy", d => y(d.bau))
       .attr("r", 3.2);
 
-    if (tech.id !== "none"){
+    const techById = new Map(selectedTechs.map(t => [t.id, t]));
+    const techColor = (techId) => getTechnologyColor(techById.get(techId) || { id: techId, name: techId });
+
+    if (hasTechSelection){
+      for (const s of perTechSeries){
+        gTrend.append("path")
+          .datum(s.values)
+          .attr("class", "trendLineTech")
+          .attr("stroke", techColor(s.tech.id))
+          .attr("d", lineTech);
+      }
+
       gTrend.append("path").datum(series).attr("class", "trendArea").attr("d", areaMitigated);
       gTrend.append("path").datum(series).attr("class", "trendLinePostTech").attr("d", linePostTech);
       gTrend.selectAll("circle.trendPointPostTech")
@@ -1382,20 +1953,22 @@
         .attr("cx", d => x(d.year))
         .attr("cy", d => y(d.postTech))
         .attr("r", 3.2);
-      trendHint.textContent = `${tech.name} · ${effortLabel} abatement effort · BAU baseline is common across effort levels (${BAU_SOURCE_MODE}).`;
+      const label = (selectedTechs.length === 1) ? selectedTechs[0].name : `${selectedTechs.length} technologies`;
+      trendHint.textContent = `${label} · ${effortLabel} abatement effort · Faint lines show individual technology paths; stacked bars show sector contributions per interval (${BAU_SOURCE_MODE} BAU).`;
     } else {
-      trendHint.textContent = `BAU baseline shown (${BAU_SOURCE_MODE}). Select a decarbonization technology to display post emissions.`;
+      trendHint.textContent = `BAU baseline shown (${BAU_SOURCE_MODE}). Select one or more decarbonization technologies to display post emissions.`;
     }
 
     const legendItems = [
       { label: "BAU baseline (common)", color: "rgba(100,116,139,.95)", active: true },
-      { label: "Post with selected technology", color: "rgba(37,99,235,.95)", active: tech.id !== "none" }
+      { label: "Individual tech paths", color: "rgba(148,163,184,.90)", active: hasTechSelection },
+      { label: "Post with selected technologies", color: "rgba(37,99,235,.95)", active: hasTechSelection }
     ];
-    const keyW = 238;
-    const keyH = 40;
+    const keyW = 258;
+    const keyH = 56;
     const key = gTrend.append("g")
       .attr("class", "trendLegendIn")
-      .attr("transform", `translate(${Math.max(0, iw - keyW - 2)},4)`);
+      .attr("transform", `translate(${Math.max(0, iw - keyW - 8)},-5)`);
     key.append("rect")
       .attr("class", "keyBg")
       .attr("rx", 8)
@@ -1403,12 +1976,13 @@
       .attr("width", keyW)
       .attr("height", keyH);
     legendItems.forEach((item, i) => {
-      const yRow = 13 + (i * 16);
+      const yRow = 13 + (i * 15);
       key.append("line")
         .attr("x1", 10).attr("x2", 28)
         .attr("y1", yRow).attr("y2", yRow)
         .attr("stroke", item.color)
-        .attr("stroke-width", 2.2)
+      .attr("stroke-width", 2.2)
+        .attr("stroke-dasharray", i === 1 ? "4 4" : null)
         .attr("opacity", item.active ? 1 : 0.35);
       key.append("text")
         .attr("x", 34)
@@ -1416,6 +1990,161 @@
         .attr("opacity", item.active ? 1 : 0.55)
         .text(item.label);
     });
+
+    if (!hasTechSelection) return;
+
+    const stackPanel = gTrend.append("g")
+      .attr("transform", `translate(0,${bottomTop})`);
+    stackPanel.append("text")
+      .attr("class", "trendSubTitle")
+      .attr("x", 10)
+      .attr("y", 14)
+      .text("Period Abatement by Subsector (Bt)");
+
+    const periodsForBars = periodBreakdown.filter(d => d.total > 0);
+    if (hasTechSelection && periodsForBars.length){
+      const xS = d3.scaleBand()
+        .domain(periodsForBars.map(d => d.label))
+        .range([30, stackW - 10])
+        .padding(0.32);
+      const maxStack = Math.max(0.001, d3.max(periodsForBars, d => d.total) || 0.001);
+      const yS = d3.scaleLinear().domain([0, maxStack]).range([bottomH - 20, 30]).nice(3);
+
+      stackPanel.append("g")
+        .attr("class", "trendPanelAxis")
+        .attr("transform", "translate(26,0)")
+        .call(d3.axisLeft(yS).ticks(3).tickFormat(v => `${d3.format(".1f")(v)}b`));
+
+      stackPanel.append("line")
+        .attr("x1", 26)
+        .attr("x2", stackW - 10)
+        .attr("y1", yS(0))
+        .attr("y2", yS(0))
+        .attr("stroke", "var(--stroke2)");
+
+      for (const d of periodsForBars){
+        let cum = 0;
+        const subsectorKeys = CAT_ORDER.flatMap(cat => (SUB_ORDER_BY_CAT[cat] || []).map(sub => `${cat}|||${sub}`));
+        for (const cellKey of subsectorKeys){
+          const v = Math.max(0, +(d.bySubsector?.get(cellKey) || 0));
+          if (v <= 0) continue;
+          const [cat, sub] = cellKey.split("|||");
+          const y0 = yS(cum);
+          const y1 = yS(cum + v);
+          stackPanel.append("rect")
+            .attr("x", xS(d.label))
+            .attr("y", y1)
+            .attr("width", xS.bandwidth())
+            .attr("height", Math.max(0, y0 - y1))
+            .attr("fill", COLOR_MAP.get(cellKey) || SECTOR_BASE[cat] || "#94a3b8")
+            .attr("opacity", 0.84)
+            .on("mousemove", (ev) => showTrendSubsectorTooltip(ev, d.label, cat, sub, v, d.total))
+            .on("mouseleave", hideTooltip);
+          cum += v;
+        }
+        stackPanel.append("text")
+          .attr("class", "trendStackTotal")
+          .attr("x", (xS(d.label) || 0) + (xS.bandwidth() / 2))
+          .attr("y", yS(d.total) - 4)
+          .attr("text-anchor", "middle")
+          .text(`${d3.format(".2f")(d.total)}b`);
+        stackPanel.append("text")
+          .attr("class", "trendPeriodLabel")
+          .attr("x", (xS(d.label) || 0) + (xS.bandwidth() / 2))
+          .attr("y", bottomH - 6)
+          .attr("text-anchor", "middle")
+          .text(String(d.label).replace("->", "→"));
+      }
+    } else {
+      stackPanel.append("text")
+        .attr("class", "trendStackHint")
+        .attr("x", 10)
+        .attr("y", 34)
+        .text("Select technologies to display sector-level period stacks.");
+    }
+
+    const waterfallPanel = gTrend.append("g")
+      .attr("transform", `translate(${stackW + splitGap},${bottomTop})`);
+    waterfallPanel.append("text")
+      .attr("class", "trendSubTitle")
+      .attr("x", 10)
+      .attr("y", 14)
+      .text("Period Drop by Technology (Bt)");
+
+    if (hasTechSelection && periodsForBars.length){
+      const xW = d3.scaleBand()
+        .domain(periodsForBars.map(d => d.label))
+        .range([10, waterfallW - 10])
+        .padding(0.26);
+      const maxW = Math.max(0.001, d3.max(periodsForBars, d => d.total) || 0.001);
+      const yW = d3.scaleLinear().domain([0, maxW]).range([bottomH - 20, 44]).nice(3);
+
+      let legendX = 10;
+      let legendY = 26;
+      for (const tech of selectedTechs.slice(0, 4)){
+        waterfallPanel.append("circle")
+          .attr("cx", legendX + 4)
+          .attr("cy", legendY)
+          .attr("r", 3)
+          .attr("fill", techColor(tech.id));
+        waterfallPanel.append("text")
+          .attr("class", "trendWaterfallLegend")
+          .attr("x", legendX + 10)
+          .attr("y", legendY + 3)
+          .text(tech.name);
+        legendX += 116;
+        if (legendX > waterfallW - 110){
+          legendX = 10;
+          legendY += 12;
+        }
+      }
+      if (selectedTechs.length > 4){
+        waterfallPanel.append("text")
+          .attr("class", "trendWaterfallLegend")
+          .attr("x", legendX)
+          .attr("y", legendY + 3)
+          .text(`+${selectedTechs.length - 4} more`);
+      }
+
+      for (const d of periodsForBars){
+        const xBase = xW(d.label) || 0;
+        const bandW = xW.bandwidth();
+        let cum = 0;
+        for (const tech of selectedTechs){
+          const v = Math.max(0, +(d.byTech?.get(tech.id) || 0));
+          if (v <= 0) continue;
+          const yStart = yW(cum);
+          const yEnd = yW(cum + v);
+          waterfallPanel.append("rect")
+            .attr("x", xBase)
+            .attr("y", yEnd)
+            .attr("width", bandW)
+            .attr("height", Math.max(0, yStart - yEnd))
+            .attr("fill", techColor(tech.id))
+            .attr("opacity", 0.88);
+          cum += v;
+        }
+
+        waterfallPanel.append("text")
+          .attr("class", "trendStackTotal")
+          .attr("x", xBase + (bandW / 2))
+          .attr("y", yW(d.total) - 4)
+          .attr("text-anchor", "middle")
+          .text(`${d3.format(".2f")(d.total)}b`);
+        waterfallPanel.append("text")
+          .attr("class", "trendPeriodLabel")
+          .attr("x", xBase + (bandW / 2))
+          .attr("y", bottomH - 6)
+          .attr("text-anchor", "middle")
+          .text(String(d.label).replace("->", "→"));
+      }
+    } else {
+      waterfallPanel.append("text")
+        .attr("class", "trendStackHint")
+        .attr("x", 10)
+        .attr("y", 34)
+        .text("No period decomposition without selected technologies.");
+    }
   }
 
   function csvEscape(value){
@@ -1427,6 +2156,9 @@
   function exportCurrentStateCsv(){
     const year = YEARS[STATE.yearIndex];
     const tier = STATE.tier;
+    const selectedTechs = getSelectedTechs();
+    const selectedTechIds = selectedTechs.map(t => t.id);
+    const selectedTechNames = selectedTechs.map(t => t.name);
     const rows = getRows(tier, year);
     const refState = buildReferenceEmissionState(tier, year);
     const techMap = computeTechAbatement(rows, year, refState.overlayWindow);
@@ -1435,7 +2167,7 @@
     const emissionTier = rows.length ? (rows[0].emissionsTier || "") : "";
     lines.push([
       "abatement_effort_tier","emissions_path_tier","display_year","overlay_target","ref_year","view_mode",
-      "tech_id","tech_name","category","sub","emissions_bt","overlay_bt","overlay_share_vs_ref"
+      "tech_ids","tech_names","category","sub","emissions_bt","overlay_bt","overlay_share_vs_ref"
     ].join(","));
     for (const r of rows){
       const key = `${r.category}|||${r.sub}`;
@@ -1449,8 +2181,8 @@
         targetLabel,
         refState.refYear,
         STATE.viewMode,
-        STATE.techId,
-        getTech().name,
+        selectedTechIds.join("|"),
+        selectedTechNames.join("|"),
         r.category,
         r.sub,
         (+r.emissions || 0).toFixed(6),
@@ -1461,7 +2193,8 @@
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `mekko_view_${tier}_${year}_${STATE.techId || "none"}.csv`;
+    const techPart = selectedTechIds.length ? selectedTechIds.join("-") : "none";
+    link.download = `mekko_view_${tier}_${year}_${techPart}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -1472,12 +2205,14 @@
   function render(){
     const year = YEARS[STATE.yearIndex];
     const tier = STATE.tier;
+    const selectedTechs = getSelectedTechs();
+    const hasTechSelection = selectedTechs.length > 0;
     const effortLabel = (String(tier).toLowerCase() === "low") ? "LOW EFFORT" : "HIGH EFFORT";
 
     const rows = getRows(tier, year);
     const refState = buildReferenceEmissionState(tier, year);
     const techMap = computeTechAbatement(rows, year, refState.overlayWindow);
-    const showOverlay = STATE.techId !== "none" && STATE.viewMode !== "emissions";
+    const showOverlay = hasTechSelection && STATE.viewMode !== "emissions";
     const baseOpacity = STATE.viewMode === "decarb" ? 0.16 : 1;
 
     const L = computeLayout(tier, year);
@@ -1501,10 +2236,18 @@
     const totalTech = Array.from(techMap.values()).reduce((a,b)=>a+b, 0);
     statTech.textContent = `${fmtBt2(totalTech)} Bt`;
     statTechPct.textContent = (refState.refTotal>0) ? `${d3.format(".1%")(totalTech/refState.refTotal)}` : "—";
-    if (STATE.techId === "none") techPill.textContent = "Overlay status: Off";
+    if (!hasTechSelection) techPill.textContent = "Overlay status: Off";
     else if (STATE.viewMode === "emissions") techPill.textContent = "Overlay status: Hidden (Emissions-only view)";
     else techPill.textContent = totalTech > 0 ? `Overlay status: Active (${fmtBt2(totalTech)} Bt)` : "Overlay status: 0 in this view";
-    renderMitigationTrend();
+    if (trendCard){
+      trendCard.style.display = hasTechSelection ? "block" : "none";
+    }
+    if (hasTechSelection){
+      renderMitigationTrend();
+    } else {
+      trendSvg.selectAll("*").remove();
+      trendHint.textContent = "";
+    }
     updateContributors(rows, techMap, refState.byKey, refState.refYear);
 
     const sectorSel = sectorsG.selectAll("g.sector").data(L.sectors, d => d.category);
@@ -1535,6 +2278,8 @@
     sectorMerge.each(function(sector){
       const cellG = d3.select(this).select("g.cells");
       const cellSel = cellG.selectAll("g.cell").data(sector.subs, d => d.sub);
+      const cellInsetX = 0.8;
+      const cellWidth = Math.max(0, sector.w - (2 * cellInsetX));
 
       const cellEnter = cellSel.enter().append("g").attr("class","cell");
 
@@ -1542,9 +2287,9 @@
         .attr("class","rect")
         .attr("rx", 2)
         .attr("ry", 2)
-        .attr("x", 2)
+        .attr("x", cellInsetX)
         .attr("y", innerH)
-        .attr("width", Math.max(0, sector.w - 4))
+        .attr("width", cellWidth)
         .attr("height", 0)
         .attr("fill", d => COLOR_MAP.get(`${d.category}|||${d.sub}`) || "#9aa4b2")
         .on("mousemove", (ev, d)=>showTooltip(ev, d))
@@ -1553,8 +2298,8 @@
       cellEnter.append("rect").attr("class","overlay overlaySolid")
         .attr("rx", 2)
         .attr("ry", 2)
-        .attr("x", 2).attr("y", innerH)
-        .attr("width", Math.max(0, sector.w - 4))
+        .attr("x", cellInsetX).attr("y", innerH)
+        .attr("width", cellWidth)
         .attr("height", 0)
         .attr("fill", "#9ca3af")
         .attr("fill-opacity", 0.62);
@@ -1562,8 +2307,8 @@
       cellEnter.append("rect").attr("class","overlay overlayPattern")
         .attr("rx", 2)
         .attr("ry", 2)
-        .attr("x", 2).attr("y", innerH)
-        .attr("width", Math.max(0, sector.w - 4))
+        .attr("x", cellInsetX).attr("y", innerH)
+        .attr("width", cellWidth)
         .attr("height", 0)
         .attr("fill", "url(#hatch)");
 
@@ -1580,18 +2325,18 @@
 
       cellMerge.select("rect.rect")
         .transition().duration(520).ease(d3.easeCubicOut)
-        .attr("x", 2)
-        .attr("width", Math.max(0, sector.w - 4))
+        .attr("x", cellInsetX)
+        .attr("width", cellWidth)
         .attr("y", d => yBase + d.y0)
         .attr("height", d => Math.max(0, d.y1 - d.y0))
         .attr("fill", d => COLOR_MAP.get(`${d.category}|||${d.sub}`) || "#9aa4b2")
         .attr("fill-opacity", baseOpacity)
         .attr("stroke", "rgba(255,255,255,.92)")
-        .attr("stroke-width", STATE.viewMode === "decarb" ? 1.25 : 2);
+        .attr("stroke-width", STATE.viewMode === "decarb" ? 1.1 : 1.6);
 
-      const overlayInset = 2;
-      const overlayX = 2 + overlayInset;
-      const overlayWidth = Math.max(0, sector.w - 4 - (2 * overlayInset));
+      const overlayInset = 1.2;
+      const overlayX = cellInsetX + overlayInset;
+      const overlayWidth = Math.max(0, cellWidth - (2 * overlayInset));
       const overlayHeight = (d) => {
         const h = Math.max(0, d.y1 - d.y0);
         const denom = Math.max(0, +(d.techDenomBt ?? d.emissions) || 0);
@@ -1672,7 +2417,7 @@
       console.warn("Using embedded emissions fallback (CSV load failed).", err);
       refreshOrderingFromData(DATA);
       COLOR_MAP = buildColorMap();
-      setDataStatus("emissions", "Fallback");
+      setDataStatus("emissions", "Fallback", String(err?.message || err || "load failed"));
     }
 
     BAU_FALLBACK_TOTAL_BY_YEAR = buildFallbackBauTotalsFromData(DATA);
@@ -1708,12 +2453,12 @@
       TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
       TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
       renderFooterTechSources(collectTechSourcesFromTechs(TECHS));
-      setDataStatus("tech", "Fallback");
+      setDataStatus("tech", "Fallback", String(err?.message || err || "load failed"));
     }
 
     refreshTechSelectOptions();
-    if (!TECHS.some(t => t.id === STATE.techId)) STATE.techId = "none";
-    techSelect.value = STATE.techId;
+    STATE.techIds = normalizeTechIds(STATE.techIds);
+    syncTechSelectFromState();
     yearSlider.value = STATE.yearIndex;
     updateYearSliderVisual();
     updateTechPanel();
