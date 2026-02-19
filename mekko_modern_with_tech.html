@@ -191,6 +191,48 @@
   .techCheckItem{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.25;color:var(--text);}
   .techCheckItem input{margin-top:1px;accent-color:#2563eb;}
   .techCheckItem span{display:block;}
+  .synergySwitchRow{margin-top:8px;display:flex;justify-content:flex-start;}
+  .synergySwitch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+  .synergySwitch input{position:absolute;opacity:0;pointer-events:none;}
+  .synergySwitch .track{
+    position:relative;
+    width:34px;
+    height:18px;
+    border-radius:999px;
+    background:rgba(148,163,184,.36);
+    border:1px solid rgba(148,163,184,.55);
+    transition:all .16s ease;
+  }
+  .synergySwitch .thumb{
+    position:absolute;
+    top:1px;
+    left:1px;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:#ffffff;
+    box-shadow:0 1px 2px rgba(0,0,0,.22);
+    transition:transform .16s ease;
+  }
+  .synergySwitch .label{
+    font-size:11.5px;
+    line-height:1.2;
+    color:var(--muted2);
+    letter-spacing:.1px;
+  }
+  .synergySwitch input:checked + .track{
+    background:rgba(37,99,235,.86);
+    border-color:rgba(37,99,235,.92);
+    box-shadow:0 0 0 2px rgba(37,99,235,.18);
+  }
+  [data-theme="light"] .synergySwitch input:checked + .track{
+    background:rgba(29,78,216,.88);
+    border-color:rgba(29,78,216,.96);
+    box-shadow:0 0 0 2px rgba(29,78,216,.16);
+  }
+  .synergySwitch input:checked + .track .thumb{transform:translateX(16px);}
+  .synergySwitch input:checked ~ .label{color:var(--text);}
+  .synergySwitch input:focus-visible + .track{outline:1px solid var(--stroke2);outline-offset:2px;}
   .search{padding:8px 9px;font-size:11.5px;}
   [data-theme="light"] .search,[data-theme="light"] .select{background:rgba(255,255,255,.7);}
   .search::placeholder{color:var(--muted2);}
@@ -266,6 +308,7 @@
   [data-theme="light"] .rect{stroke:rgba(255,255,255,.95);filter:drop-shadow(0 8px 12px rgba(0,0,0,.10));}
   .rect:hover{stroke-width:3px;filter:drop-shadow(0 16px 22px rgba(0,0,0,.28));}
   .overlay{rx:2px;ry:2px;pointer-events:none;opacity:.95;stroke:rgba(71,85,105,.45);stroke-width:.8px;}
+  .overlaySynergy{stroke:rgba(55,65,81,.65);}
   .fade{opacity:.22;}
   .legend{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border-radius:12px;border:1px solid var(--stroke);background:rgba(0,0,0,.22);backdrop-filter:blur(10px);box-shadow:none;}
   [data-theme="light"] .legend{background:rgba(255,255,255,.76);}
@@ -350,6 +393,13 @@
         <div class="panel">
           <h3>Decarbonization Technology</h3>
           <div class="techChecklist" id="techChecklist"></div>
+          <div class="synergySwitchRow">
+            <label class="synergySwitch">
+              <input id="toggleSynergy" type="checkbox" checked />
+              <span class="track"><span class="thumb"></span></span>
+              <span class="label">Include complementarities</span>
+            </label>
+          </div>
           <div class="row" style="margin-top:10px;">
             <span class="pill" id="techPill">Overlay: Off</span>
           </div>
@@ -366,9 +416,9 @@
         <div class="panel">
           <h3>How to read the overlay</h3>
           <div class="hint">
-            The <b>hatched gray portion</b> is the selected technology set’s abatement potential for each subsector at the current
-            horizon (<b>2025 view = by 2035</b>, <b>2035 view = by 2050</b>, <b>2050 view = post-2050</b>). Values come from the technology CSV,
-            are displayed as a share of mapped reference-year emissions, and are always capped by each tile’s emissions.
+            The <b>light hatched gray portion</b> is independent abatement from selected technologies. The <b>darker cross-hatched portion</b>
+            is incremental complementarity uplift (only when compatible technology pairs are selected and complementarities are enabled).
+            Horizons map as <b>2025 view = by 2035</b>, <b>2035 view = by 2050</b>, <b>2050 view = post-2050</b>. All overlays are capped by each tile’s emissions.
           </div>
         </div>
       </aside>
@@ -671,8 +721,19 @@
         ]
       : TEMPLATE_VARIANTS("technology_overlay.csv")
   );
+  const TECH_SYNERGY_PATHS = (
+    window.location.protocol === "file:"
+      ? [
+          `${ABS_TEMPLATE_ROOT}/technology_synergy_overlay.csv`,
+          ...TEMPLATE_VARIANTS("technology_synergy_overlay.csv")
+        ]
+      : TEMPLATE_VARIANTS("technology_synergy_overlay.csv")
+  );
 
   let TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+  let TECH_OVERLAY_FROM_CSV = false;
+  let TECH_SYNERGY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+  let SYNERGY_PAIR_META = new Map();
   let BAU_FALLBACK_TOTAL_BY_YEAR = new Map();
   let BAU_TOTAL_BY_YEAR = new Map();
   let BAU_SOURCE_MODE = "Fallback";
@@ -764,39 +825,46 @@
 
   async function loadCsvFromCandidates(paths, requiredColumns = []){
     let lastErr = null;
+    const cacheBust = `_cb=${Date.now()}`;
     for (const path of paths){
       for (const candidate of makeCsvCandidates(path)){
-        try {
-          const rows = await d3.csv(candidate);
-          if (rows && hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "d3.csv" };
-        } catch (err){
-          lastErr = err;
-        }
-        try {
-          const txt = await d3.text(candidate);
-          const rows = parseCsvTextMaybe(txt);
-          if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "d3.text" };
-        } catch (err){
-          lastErr = err;
-        }
-        try {
-          const txt = await loadTextViaXHR(candidate);
-          const rows = parseCsvTextMaybe(txt);
-          if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "xhr" };
-        } catch (err){
-          lastErr = err;
-        }
-        const shouldTryIframe = (
-          window.location.protocol === "file:" ||
-          String(candidate).startsWith("file://")
-        );
-        if (shouldTryIframe){
+        const isHttpLike = window.location.protocol !== "file:" && !String(candidate).startsWith("file://");
+        const busted = `${candidate}${String(candidate).includes("?") ? "&" : "?"}${cacheBust}`;
+        const toTry = isHttpLike ? [busted, candidate] : [candidate];
+
+        for (const c of toTry){
           try {
-            const txt = await loadTextViaIframe(candidate);
-            const rows = parseCsvTextMaybe(txt);
-            if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: candidate, method: "iframe" };
+            const rows = await d3.csv(c);
+            if (rows && hasRequiredColumns(rows, requiredColumns)) return { rows, source: c, method: "d3.csv" };
           } catch (err){
             lastErr = err;
+          }
+          try {
+            const txt = await d3.text(c);
+            const rows = parseCsvTextMaybe(txt);
+            if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: c, method: "d3.text" };
+          } catch (err){
+            lastErr = err;
+          }
+          try {
+            const txt = await loadTextViaXHR(c);
+            const rows = parseCsvTextMaybe(txt);
+            if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: c, method: "xhr" };
+          } catch (err){
+            lastErr = err;
+          }
+          const shouldTryIframe = (
+            window.location.protocol === "file:" ||
+            String(c).startsWith("file://")
+          );
+          if (shouldTryIframe){
+            try {
+              const txt = await loadTextViaIframe(c);
+              const rows = parseCsvTextMaybe(txt);
+              if (hasRequiredColumns(rows, requiredColumns)) return { rows, source: c, method: "iframe" };
+            } catch (err){
+              lastErr = err;
+            }
           }
         }
       }
@@ -977,6 +1045,83 @@
     return `y${y}`;
   }
 
+  function makeTechPairKey(techA, techB){
+    const a = String(techA || "").trim();
+    const b = String(techB || "").trim();
+    if (!a || !b || a === b) return "";
+    return [a, b].sort().join("+++");
+  }
+
+  function splitTechPairKey(pairKey){
+    const [a, b] = String(pairKey || "").split("+++");
+    return [a || "", b || ""];
+  }
+
+  function buildSynergyStateFromCsvRows(rows){
+    const overlayMid = new Map();
+    const overlayLow = new Map();
+    const overlayHigh = new Map();
+    const pairMeta = new Map();
+
+    for (const r of rows || []){
+      const techA = String(r.tech_a || r.tech1 || "").trim();
+      const techB = String(r.tech_b || r.tech2 || "").trim();
+      const pairKey = makeTechPairKey(techA, techB);
+      if (!pairKey) continue;
+
+      const pairLabel = String(r.pair_label || `${techA} + ${techB}`).trim();
+      if (!pairMeta.has(pairKey)){
+        pairMeta.set(pairKey, { pairKey, techA, techB, pairLabel, sources: [] });
+      }
+      const meta = pairMeta.get(pairKey);
+      const rowSources = [];
+      if (r.source_label && r.source_url) rowSources.push({ label: String(r.source_label).trim(), url: String(r.source_url).trim() });
+      rowSources.push(...parseSourceList(r.sources));
+      for (const src of rowSources){
+        if (!src.label || !src.url) continue;
+        if (!meta.sources.some(s => s.label === src.label && s.url === src.url)) meta.sources.push(src);
+      }
+
+      const tier = String(r.tier || "").trim().toLowerCase();
+      const yearVal = +r.year;
+      const year = Number.isFinite(yearVal) ? String(yearVal) : "*";
+      const rawTime = (r.time_key ?? r.tk ?? r.time ?? "");
+      const timeKey = (String(rawTime).trim().toLowerCase()) || (year !== "*" ? yearTimeKey(yearVal) : "*");
+      const category = String(r.category || "").trim();
+      const sub = String(r.sub || "").trim();
+      const synergyMid = +r.synergy_bt_incremental;
+      const synergyFallback = +r.synergy_bt;
+      const midValue = Number.isFinite(synergyMid) ? synergyMid : synergyFallback;
+      const synergyLowRaw = +r.synergy_low_bt;
+      const synergyHighRaw = +r.synergy_high_bt;
+      if (!tier || !category || !sub || !Number.isFinite(midValue)) continue;
+      const synergyLow = Number.isFinite(synergyLowRaw) ? synergyLowRaw : midValue;
+      const synergyHigh = Number.isFinite(synergyHighRaw) ? synergyHighRaw : midValue;
+
+      const key = `${pairKey}|||${tier}|||${year}|||${timeKey || "*"}|||${category}|||${sub}`;
+      overlayMid.set(key, Math.max(0, (overlayMid.get(key) || 0) + midValue));
+      overlayLow.set(key, Math.max(0, (overlayLow.get(key) || 0) + synergyLow));
+      overlayHigh.set(key, Math.max(0, (overlayHigh.get(key) || 0) + synergyHigh));
+
+      if (timeKey === "ypost" || timeKey === "post2050"){
+        const keyPostWildcardYear = `${pairKey}|||${tier}|||*|||${timeKey}|||${category}|||${sub}`;
+        overlayMid.set(keyPostWildcardYear, Math.max(0, (overlayMid.get(keyPostWildcardYear) || 0) + midValue));
+        overlayLow.set(keyPostWildcardYear, Math.max(0, (overlayLow.get(keyPostWildcardYear) || 0) + synergyLow));
+        overlayHigh.set(keyPostWildcardYear, Math.max(0, (overlayHigh.get(keyPostWildcardYear) || 0) + synergyHigh));
+      }
+
+      const keyLegacy = `${pairKey}|||${tier}|||${year}|||*|||${category}|||${sub}`;
+      overlayMid.set(keyLegacy, Math.max(0, (overlayMid.get(keyLegacy) || 0) + midValue));
+      overlayLow.set(keyLegacy, Math.max(0, (overlayLow.get(keyLegacy) || 0) + synergyLow));
+      overlayHigh.set(keyLegacy, Math.max(0, (overlayHigh.get(keyLegacy) || 0) + synergyHigh));
+    }
+
+    return {
+      pairMeta,
+      overlayMaps: { mid: overlayMid, low: overlayLow, high: overlayHigh }
+    };
+  }
+
   function buildTechStateFromCsvRows(rows){
     const techById = new Map();
     const overlayMid = new Map();
@@ -1062,6 +1207,7 @@
   const exportBtn = document.getElementById("exportBtn");
   const search = document.getElementById("search");
   const techChecklist = document.getElementById("techChecklist");
+  const toggleSynergy = document.getElementById("toggleSynergy");
 
   const selLabel = document.getElementById("selLabel");
   const techLabel = document.getElementById("techLabel");
@@ -1131,6 +1277,16 @@
     .attr("width",10)
     .attr("height",10)
     .attr("fill","rgba(120,132,149,.20)");
+  defs.append("pattern")
+    .attr("id","hatchSynergy")
+    .attr("patternUnits","userSpaceOnUse")
+    .attr("width",8)
+    .attr("height",8)
+    .attr("patternTransform","rotate(0)")
+    .append("path")
+    .attr("d", "M0,0 L8,8 M8,0 L0,8")
+    .attr("stroke", "rgba(75,85,99,.82)")
+    .attr("stroke-width", 1.2);
 
   svg.insert("rect", ":first-child")
     .attr("x", margin.left + 2)
@@ -1164,7 +1320,8 @@
     timer: null,
     query: "",
     techIds: [],
-    viewMode: "both"
+    viewMode: "both",
+    includeSynergy: true
   };
 
   function refreshTechSelectOptions(){
@@ -1236,8 +1393,40 @@
     return out;
   }
 
+  function getActiveSynergyPairs(selected){
+    const ids = (selected || []).map(t => t.id).filter(Boolean);
+    if (ids.length < 2) return [];
+    const out = [];
+    for (let i = 0; i < ids.length; i++){
+      for (let j = i + 1; j < ids.length; j++){
+        const pairKey = makeTechPairKey(ids[i], ids[j]);
+        if (!pairKey || !SYNERGY_PAIR_META.has(pairKey)) continue;
+        out.push(SYNERGY_PAIR_META.get(pairKey));
+      }
+    }
+    return out;
+  }
+
+  function collectSourcesFromSynergyPairs(pairs){
+    const out = [];
+    const seen = new Set();
+    for (const p of pairs || []){
+      for (const s of (p.sources || [])){
+        const label = String(s.label || "").trim();
+        const url = String(s.url || "").trim();
+        if (!label || !url) continue;
+        const key = `${label}|||${url}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ label, url });
+      }
+    }
+    return out;
+  }
+
   function updateTechPanel(){
     const selected = getSelectedTechs();
+    const activePairs = getActiveSynergyPairs(selected);
     techLabel.textContent = getSelectedTechLabel();
     techPill.textContent = selected.length ? `Overlay status: Active (${selected.length})` : "Overlay status: Off";
 
@@ -1249,14 +1438,30 @@
 
     if (selected.length === 1){
       const t = selected[0];
-      techDetails.innerHTML = t.details_html || "";
+      techDetails.innerHTML = (t.details_html || "") + `<div style='margin-top:8px;'>Complementarities: <b>${STATE.includeSynergy ? "On" : "Off"}</b></div>`;
     } else {
+      const pairText = activePairs.length
+        ? `<div style='margin-top:8px;'><b>Active complementarities:</b> ${activePairs.map(p => p.pairLabel || `${p.techA} + ${p.techB}`).join(", ")}</div>`
+        : "<div style='margin-top:8px;'>No complementarity rows found for this combination.</div>";
       techDetails.innerHTML =
         `<b>${selected.length} technologies selected.</b> Overlay and abatement are stacked across all selected technologies, capped by each tile's emissions.` +
-        `<ul style='margin:8px 0 0 18px;padding:0;'>${selected.map(t => `<li style='margin:4px 0;'>${t.name}</li>`).join("")}</ul>`;
+        `<ul style='margin:8px 0 0 18px;padding:0;'>${selected.map(t => `<li style='margin:4px 0;'>${t.name}</li>`).join("")}</ul>` +
+        `<div style='margin-top:8px;'>Complementarities: <b>${STATE.includeSynergy ? "On" : "Off"}</b></div>` +
+        pairText;
     }
 
-    const combinedSources = collectSourcesFromSelectedTechs(selected);
+    const combinedSourcesRaw = [
+      ...collectSourcesFromSelectedTechs(selected),
+      ...collectSourcesFromSynergyPairs(activePairs)
+    ];
+    const combinedSources = [];
+    const sourceSeen = new Set();
+    for (const s of combinedSourcesRaw){
+      const key = `${s.label}|||${s.url}`;
+      if (sourceSeen.has(key)) continue;
+      sourceSeen.add(key);
+      combinedSources.push(s);
+    }
     if (combinedSources.length){
       techSources.innerHTML =
         "<div style='margin-top:10px;color:var(--muted2);font-weight:900;letter-spacing:.2px;text-transform:uppercase;font-size:11px;'>Sources</div>" +
@@ -1274,6 +1479,15 @@
       if (!target || target.tagName !== "INPUT" || target.type !== "checkbox") return;
       const selected = Array.from(techChecklist.querySelectorAll("input[type='checkbox'][data-tech-id]:checked")).map(el => el.value);
       STATE.techIds = normalizeTechIds(selected);
+      stopPlay();
+      updateTechPanel();
+      render();
+    });
+  }
+
+  if (toggleSynergy){
+    toggleSynergy.addEventListener("change", (e) => {
+      STATE.includeSynergy = !!e.target.checked;
       stopPlay();
       updateTechPanel();
       render();
@@ -1594,6 +1808,68 @@
     return effort;
   }
 
+  function getSynergyValueForCell(mapMid, pairKey, tier, row, targetYearKeys, targetTimeKeys){
+    const keyCandidates = [];
+    for (const yk of targetYearKeys){
+      for (const tk of targetTimeKeys){
+        keyCandidates.push(`${pairKey}|||${tier}|||${yk}|||${tk}|||${row.category}|||${row.sub}`);
+      }
+    }
+    keyCandidates.push(`${pairKey}|||${tier}|||*|||*|||${row.category}|||${row.sub}`);
+    for (const k of [...new Set(keyCandidates)]){
+      const candidate = Math.max(0, +mapMid.get(k) || 0);
+      if (candidate > 0) return candidate;
+    }
+    return 0;
+  }
+
+  function resolveSynergyTierForEffort(effortTier, pairKey, overlayWindow, mapMid){
+    const effort = String(effortTier || "").toLowerCase();
+    if (effort !== "low" && effort !== "high") return effort;
+    if (!pairKey) return effort;
+
+    const targetYearKeys = overlayWindow?.targetYearKeys || ["*"];
+    const targetTimeKeys = overlayWindow?.targetTimeKeys || ["*"];
+    let lowTotal = 0;
+    let highTotal = 0;
+
+    for (const category of CAT_ORDER){
+      for (const sub of (SUB_ORDER_BY_CAT[category] || [])){
+        const row = { category, sub };
+        lowTotal += getSynergyValueForCell(mapMid, pairKey, "low", row, targetYearKeys, targetTimeKeys);
+        highTotal += getSynergyValueForCell(mapMid, pairKey, "high", row, targetYearKeys, targetTimeKeys);
+      }
+    }
+
+    if (lowTotal > 0 && highTotal > 0){
+      const highEffortTier = (highTotal >= lowTotal) ? "high" : "low";
+      const lowEffortTier = (highEffortTier === "high") ? "low" : "high";
+      return effort === "low" ? lowEffortTier : highEffortTier;
+    }
+    if (lowTotal > 0) return "low";
+    if (highTotal > 0) return "high";
+    return effort;
+  }
+
+  function computeSynergyAbatementForPair(rows, year, overlayWindow, techA, techB){
+    const out = new Map();
+    const pairKey = makeTechPairKey(techA?.id || techA, techB?.id || techB);
+    if (!pairKey) return out;
+
+    const effortTier = STATE.tier;
+    const mapMid = TECH_SYNERGY_MAPS.mid || new Map();
+    const targetYearKeys = overlayWindow?.targetYearKeys || [String(year), "*"];
+    const targetTimeKeys = overlayWindow?.targetTimeKeys || [yearTimeKey(year).toLowerCase(), "*"];
+    const overlayTier = resolveSynergyTierForEffort(effortTier, pairKey, overlayWindow, mapMid);
+
+    for (const row of rows){
+      const cellKey = `${row.category}|||${row.sub}`;
+      const value = getSynergyValueForCell(mapMid, pairKey, overlayTier, row, targetYearKeys, targetTimeKeys);
+      if (value > 0) out.set(cellKey, Math.min(row.emissions, value));
+    }
+    return out;
+  }
+
   function computeTechAbatementForTech(rows, year, overlayWindow, tech){
     const out = new Map();
     if (!tech || tech.id === "none") return out;
@@ -1610,6 +1886,7 @@
       if (value > 0) out.set(cellKey, Math.min(row.emissions, value));
     }
     if (!foundAny){
+      if (TECH_OVERLAY_FROM_CSV) return out;
       const fallbackTech = resolveFallbackTech(tech);
       return computeTechAbatementFromRules(rows, overlayWindow?.rulesYear || year, fallbackTech);
     }
@@ -1635,7 +1912,9 @@
   }
 
   function showTooltip(ev, d){
-    const techBt = d.techBt || 0;
+    const techBtIndependent = d.techBtIndependent || 0;
+    const techBtSynergy = d.techBtSynergy || 0;
+    const techBt = techBtIndependent + techBtSynergy;
     const denomBt = Math.max(0, +(d.techDenomBt ?? d.emissions) || 0);
     const techPct = (denomBt > 0) ? (techBt / denomBt) : 0;
     const refYear = d.refYear || d.year;
@@ -1651,7 +1930,9 @@
         <div>Sector total</div><div>${fmtBt2(d.sectorTotal)} Bt</div>
         <div>Global total</div><div>${fmtBt2(d.globalTotal)} Bt</div>
         <div>Abatement horizon</div><div>by ${targetLabel}</div>
-        <div style="margin-top:6px;">Decarbonization Technology</div><div style="margin-top:6px;">${fmtBt2(techBt)} Bt</div>
+        <div style="margin-top:6px;">Independent abatement</div><div style="margin-top:6px;">${fmtBt2(techBtIndependent)} Bt</div>
+        <div>Complementarity uplift</div><div>${fmtBt2(techBtSynergy)} Bt</div>
+        <div>Total decarb potential</div><div>${fmtBt2(techBt)} Bt</div>
         <div>Overlay share (vs ${refYear})</div><div>${fmtPct(techPct)}</div>
       </div>`;
     tooltip.html(html).style("opacity", 1).style("transform","translateY(0px)").attr("aria-hidden","false");
@@ -1684,9 +1965,10 @@
 
   function showTrendTechTooltip(ev, periodLabel, techName, bt, periodTotal){
     const share = periodTotal > 0 ? bt / periodTotal : 0;
+    const isSynergy = String(techName || "").toLowerCase().includes("synergy");
     const html = `
       <div class="ttTop"><span>${techName}</span><span>${periodLabel.replace("->", "→")}</span></div>
-      <div class="ttSub">Decarbonization Technology</div>
+      <div class="ttSub">${isSynergy ? "Complementarity uplift" : "Decarbonization Technology"}</div>
       <div class="ttGrid">
         <div>Abatement in period</div><div>${fmtBt2(bt)} Bt</div>
         <div>Share of period</div><div>${fmtPct(share)}</div>
@@ -1767,11 +2049,29 @@
     for (const r of rows || []){
       byCellResidual.set(`${r.category}|||${r.sub}`, Math.max(0, +r.emissions || 0));
     }
+    const independentByCell = new Map();
+    const synergyByCell = new Map();
+    const totalByCell = new Map();
     const bySector = new Map();
     const bySubsector = new Map();
     const byTechTotal = new Map();
-    if (!(selectedTechs || []).length) return { total: 0, bySector, bySubsector, byTechTotal };
+    const bySynergyPairTotal = new Map();
+    if (!(selectedTechs || []).length){
+      return {
+        total: 0,
+        independentTotal: 0,
+        synergyTotal: 0,
+        bySector,
+        bySubsector,
+        byTechTotal,
+        bySynergyPairTotal,
+        independentByCell,
+        synergyByCell,
+        totalByCell
+      };
+    }
 
+    let independentTotal = 0;
     for (const tech of selectedTechs){
       const techMap = computeTechAbatementForTech(rows, year, overlayWindow, tech);
       let techTotal = 0;
@@ -1782,21 +2082,75 @@
         if (use <= 0) continue;
         byCellResidual.set(cellKey, remaining - use);
         techTotal += use;
-        const category = String(cellKey).split("|||")[0];
-        bySector.set(category, (bySector.get(category) || 0) + use);
-        bySubsector.set(cellKey, (bySubsector.get(cellKey) || 0) + use);
+        independentTotal += use;
+        independentByCell.set(cellKey, (independentByCell.get(cellKey) || 0) + use);
       }
       byTechTotal.set(tech.id, techTotal);
+    }
+
+    let synergyTotal = 0;
+    const includeSynergy = !!STATE.includeSynergy;
+    if (includeSynergy && selectedTechs.length >= 2){
+      const pairList = [];
+      for (let i = 0; i < selectedTechs.length; i++){
+        for (let j = i + 1; j < selectedTechs.length; j++){
+          const a = selectedTechs[i];
+          const b = selectedTechs[j];
+          const pairKey = makeTechPairKey(a.id, b.id);
+          if (!pairKey || !SYNERGY_PAIR_META.has(pairKey)) continue;
+          const pairMap = computeSynergyAbatementForPair(rows, year, overlayWindow, a, b);
+          if (!pairMap.size) continue;
+          let pairPotential = 0;
+          for (const v of pairMap.values()) pairPotential += Math.max(0, +v || 0);
+          if (pairPotential <= 0) continue;
+          pairList.push({ pairKey, pairMap, pairPotential });
+        }
+      }
+      pairList.sort((a, b) => b.pairPotential - a.pairPotential);
+      for (const pair of pairList){
+        let pairTotal = 0;
+        for (const [cellKey, rawValue] of pair.pairMap.entries()){
+          const remaining = Math.max(0, +(byCellResidual.get(cellKey) || 0));
+          if (remaining <= 0) continue;
+          const use = Math.max(0, Math.min(remaining, +rawValue || 0));
+          if (use <= 0) continue;
+          byCellResidual.set(cellKey, remaining - use);
+          pairTotal += use;
+          synergyTotal += use;
+          synergyByCell.set(cellKey, (synergyByCell.get(cellKey) || 0) + use);
+        }
+        if (pairTotal > 0) bySynergyPairTotal.set(pair.pairKey, pairTotal);
+      }
+      if (synergyTotal > 0){
+        byTechTotal.set("__synergy__", synergyTotal);
+      }
     }
 
     let total = 0;
     for (const r of rows || []){
       const key = `${r.category}|||${r.sub}`;
-      const start = Math.max(0, +r.emissions || 0);
-      const rem = Math.max(0, +(byCellResidual.get(key) || 0));
-      total += Math.max(0, start - rem);
+      const independent = Math.max(0, +(independentByCell.get(key) || 0));
+      const synergy = Math.max(0, +(synergyByCell.get(key) || 0));
+      const combined = independent + synergy;
+      if (combined > 0){
+        totalByCell.set(key, combined);
+        bySubsector.set(key, combined);
+        bySector.set(r.category, (bySector.get(r.category) || 0) + combined);
+      }
+      total += combined;
     }
-    return { total, bySector, bySubsector, byTechTotal };
+    return {
+      total,
+      independentTotal,
+      synergyTotal,
+      bySector,
+      bySubsector,
+      byTechTotal,
+      bySynergyPairTotal,
+      independentByCell,
+      synergyByCell,
+      totalByCell
+    };
   }
 
   function renderMitigationTrend(){
@@ -1830,12 +2184,16 @@
       return;
     }
 
-    const deltaByYear = new Map();
+    const independentDeltaByYear = new Map();
+    const synergyDeltaByYear = new Map();
+    const totalDeltaByYear = new Map();
     const techDeltaByYear = new Map(selectedTechs.map(t => [t.id, new Map()]));
     const periodBreakdown = [];
 
     if (years.length){
-      deltaByYear.set(years[0], 0);
+      independentDeltaByYear.set(years[0], 0);
+      synergyDeltaByYear.set(years[0], 0);
+      totalDeltaByYear.set(years[0], 0);
       for (const tech of selectedTechs){
         techDeltaByYear.get(tech.id).set(years[0], 0);
       }
@@ -1848,11 +2206,16 @@
         const prevRows = getRows(tier, prevYear);
         const prevRef = buildReferenceEmissionState(tier, prevYear);
         const allocation = allocateAbatementForSelection(prevRows, prevYear, prevRef.overlayWindow, selectedTechs);
-        deltaByYear.set(nextYear, allocation.total);
+        independentDeltaByYear.set(nextYear, allocation.independentTotal || 0);
+        synergyDeltaByYear.set(nextYear, allocation.synergyTotal || 0);
+        totalDeltaByYear.set(nextYear, allocation.total || 0);
         periodBreakdown.push({
           label: `${prevYear}->${prevRef.overlayWindow?.targetLabel || nextYear}`,
           total: allocation.total,
+          independent: allocation.independentTotal || 0,
+          synergy: allocation.synergyTotal || 0,
           byTech: allocation.byTechTotal,
+          bySynergyPair: allocation.bySynergyPairTotal,
           bySector: allocation.bySector,
           bySubsector: allocation.bySubsector
         });
@@ -1869,30 +2232,52 @@
         periodBreakdown.push({
           label: `${lastYear}->post`,
           total: postAllocation.total,
+          independent: postAllocation.independentTotal || 0,
+          synergy: postAllocation.synergyTotal || 0,
           byTech: postAllocation.byTechTotal,
+          bySynergyPair: postAllocation.bySynergyPairTotal,
           bySector: postAllocation.bySector,
           bySubsector: postAllocation.bySubsector
         });
       }
     } else {
       for (let i = 1; i < years.length; i++){
-        deltaByYear.set(years[i], 0);
+        independentDeltaByYear.set(years[i], 0);
+        synergyDeltaByYear.set(years[i], 0);
+        totalDeltaByYear.set(years[i], 0);
       }
     }
+    const hasSynergyUplift = periodBreakdown.some(d => Math.max(0, +(d.synergy || 0)) > 0);
 
     const bauByYear = new Map();
-    let cumulative = 0;
+    let cumulativeIndependent = 0;
+    let cumulativeSynergy = 0;
     const series = years.map((year, idx) => {
       const bauRaw = BAU_TOTAL_BY_YEAR.has(year) ? BAU_TOTAL_BY_YEAR.get(year) : BAU_FALLBACK_TOTAL_BY_YEAR.get(year);
       const bau = Math.max(0, +(bauRaw || 0));
       bauByYear.set(year, bau);
       if (idx === 0){
-        cumulative = 0;
+        cumulativeIndependent = 0;
+        cumulativeSynergy = 0;
       } else {
-        cumulative += Math.max(0, +(deltaByYear.get(year) || 0));
+        cumulativeIndependent += Math.max(0, +(independentDeltaByYear.get(year) || 0));
+        cumulativeSynergy += Math.max(0, +(synergyDeltaByYear.get(year) || 0));
       }
-      const postTech = Math.max(0, bau - cumulative);
-      return { year, bau, postTech, cumulativeAbatement: cumulative, intervalDelta: deltaByYear.get(year) || 0 };
+      const cumulativeTotal = cumulativeIndependent + cumulativeSynergy;
+      const postIndependent = Math.max(0, bau - cumulativeIndependent);
+      const postTech = Math.max(0, bau - cumulativeTotal);
+      return {
+        year,
+        bau,
+        postIndependent,
+        postTech,
+        cumulativeAbatementIndependent: cumulativeIndependent,
+        cumulativeAbatementSynergy: cumulativeSynergy,
+        cumulativeAbatementTotal: cumulativeTotal,
+        intervalDeltaIndependent: independentDeltaByYear.get(year) || 0,
+        intervalDeltaSynergy: synergyDeltaByYear.get(year) || 0,
+        intervalDeltaTotal: totalDeltaByYear.get(year) || 0
+      };
     });
 
     const perTechSeries = selectedTechs.map((tech) => {
@@ -1949,11 +2334,16 @@
       .call(d3.axisBottom(xL).tickFormat(d3.format("d")));
 
     const lineBau = d3.line().x(d => xL(d.year)).y(d => yL(d.bau));
+    const linePostIndependent = d3.line().x(d => xL(d.year)).y(d => yL(d.postIndependent));
     const linePostTech = d3.line().x(d => xL(d.year)).y(d => yL(d.postTech));
     const lineTech = d3.line().x(d => xL(d.year)).y(d => yL(d.postTech));
     const areaMitigated = d3.area()
       .x(d => xL(d.year))
       .y0(d => yL(d.bau))
+      .y1(d => yL(d.postIndependent));
+    const areaSynergy = d3.area()
+      .x(d => xL(d.year))
+      .y0(d => yL(d.postIndependent))
       .y1(d => yL(d.postTech));
 
     topPanel.append("path").datum(series).attr("class", "trendLineBau").attr("d", lineBau);
@@ -1976,6 +2366,23 @@
           .attr("d", lineTech);
       }
       topPanel.append("path").datum(series).attr("class", "trendArea").attr("d", areaMitigated);
+      topPanel.append("path")
+        .datum(series)
+        .attr("fill", "rgba(107,114,128,.24)")
+        .attr("d", areaSynergy)
+        .style("opacity", (STATE.includeSynergy && hasSynergyUplift) ? 1 : 0);
+      topPanel.append("path")
+        .datum(series)
+        .attr("fill", "url(#hatchSynergy)")
+        .attr("d", areaSynergy)
+        .style("opacity", (STATE.includeSynergy && hasSynergyUplift) ? 0.55 : 0);
+      topPanel.append("path")
+        .datum(series)
+        .attr("fill", "none")
+        .attr("stroke", "rgba(37,99,235,.72)")
+        .attr("stroke-width", 1.8)
+        .attr("stroke-dasharray", "5 4")
+        .attr("d", linePostIndependent);
       topPanel.append("path").datum(series).attr("class", "trendLinePostTech").attr("d", linePostTech);
       topPanel.selectAll("circle.trendPointPostTech")
         .data(series).enter().append("circle")
@@ -1984,7 +2391,10 @@
         .attr("cy", d => yL(d.postTech))
         .attr("r", 3.2);
       const label = (selectedTechs.length === 1) ? selectedTechs[0].name : `${selectedTechs.length} technologies`;
-      trendHint.textContent = `${label} · ${effortLabel} abatement effort · Top: global emissions path; bottom: subsector and technology decompositions (${BAU_SOURCE_MODE} BAU).`;
+      const synergyMode = STATE.includeSynergy
+        ? (hasSynergyUplift ? "Complementarities on" : "Complementarities on (no uplift found)")
+        : "Complementarities off";
+      trendHint.textContent = `${label} · ${effortLabel} abatement effort · ${synergyMode}. Top: BAU, independent post, and post + complementarities; bottom: subsector and technology decompositions (${BAU_SOURCE_MODE} BAU).`;
     } else {
       trendHint.textContent = `BAU baseline shown (${BAU_SOURCE_MODE}). Select one or more decarbonization technologies to display post emissions.`;
     }
@@ -1992,10 +2402,11 @@
     const legendItems = [
       { label: "BAU baseline (common)", color: "rgba(100,116,139,.95)", active: true },
       { label: "Individual tech paths", color: "rgba(148,163,184,.90)", active: hasTechSelection },
-      { label: "Post with selected technologies", color: "rgba(37,99,235,.95)", active: hasTechSelection }
+      { label: "Post (independent only)", color: "rgba(37,99,235,.72)", active: hasTechSelection },
+      { label: "Post + complementarities", color: "rgba(37,99,235,.95)", active: hasTechSelection && STATE.includeSynergy && hasSynergyUplift }
     ];
     const keyW = Math.min(252, iw - 40);
-    const keyH = 56;
+    const keyH = 70;
     const key = topPanel.append("g")
       .attr("class", "trendLegendIn")
       .attr("transform", `translate(54,${Math.max(0, leftColH - keyH - 36)})`);
@@ -2006,13 +2417,13 @@
       .attr("width", keyW)
       .attr("height", keyH);
     legendItems.forEach((item, i) => {
-      const yRow = 13 + (i * 15);
+      const yRow = 13 + (i * 14);
       key.append("line")
         .attr("x1", 10).attr("x2", 28)
         .attr("y1", yRow).attr("y2", yRow)
         .attr("stroke", item.color)
         .attr("stroke-width", 2.2)
-        .attr("stroke-dasharray", i === 1 ? "4 4" : null)
+        .attr("stroke-dasharray", i === 1 ? "4 4" : (i === 2 ? "5 4" : null))
         .attr("opacity", item.active ? 1 : 0.35);
       key.append("text")
         .attr("x", 34)
@@ -2097,6 +2508,13 @@
         .padding(0.26);
       const maxW = Math.max(0.001, d3.max(periodsForBars, d => d.total) || 0.001);
       const yW = d3.scaleLinear().domain([0, maxW]).range([rightPlotY1, rightPlotY0]).nice(3);
+      const hasSynergyBar = periodsForBars.some(d => Math.max(0, +(d.byTech?.get("__synergy__") || 0)) > 0);
+      const chartTechEntries = [
+        ...selectedTechs.map(t => ({ id: t.id, name: t.name, color: techColor(t.id) }))
+      ];
+      if (hasSynergyBar){
+        chartTechEntries.push({ id: "__synergy__", name: "Synergy uplift", color: "#6b7280" });
+      }
 
       bottomRightPanel.append("g")
         .attr("class", "trendPanelAxis")
@@ -2112,8 +2530,8 @@
         const xBase = xW(d.label) || 0;
         const bandW = xW.bandwidth();
         let cum = 0;
-        for (const tech of selectedTechs){
-          const v = Math.max(0, +(d.byTech?.get(tech.id) || 0));
+        for (const entry of chartTechEntries){
+          const v = Math.max(0, +(d.byTech?.get(entry.id) || 0));
           if (v <= 0) continue;
           const yStart = yW(cum);
           const yEnd = yW(cum + v);
@@ -2122,9 +2540,9 @@
             .attr("y", yEnd)
             .attr("width", bandW)
             .attr("height", Math.max(0, yStart - yEnd))
-            .attr("fill", techColor(tech.id))
+            .attr("fill", entry.color)
             .attr("opacity", 0.88)
-            .on("mousemove", (ev) => showTrendTechTooltip(ev, d.label, tech.name, v, d.total))
+            .on("mousemove", (ev) => showTrendTechTooltip(ev, d.label, entry.name, v, d.total))
             .on("mouseleave", hideTooltip);
           cum += v;
         }
@@ -2136,13 +2554,13 @@
           .text(`${d3.format(".2f")(d.total)}b`);
       }
 
-      const visibleLegendTechs = selectedTechs.slice(0, 4);
+      const visibleLegendTechs = chartTechEntries.slice(0, 5);
       const legendRows = visibleLegendTechs.map(t => ({
-        color: techColor(t.id),
+        color: t.color,
         label: String(t.name || "").length > 25 ? `${String(t.name || "").slice(0, 22)}…` : String(t.name || "")
       }));
-      if (selectedTechs.length > 4){
-        legendRows.push({ color: "rgba(100,116,139,.95)", label: `+${selectedTechs.length - 4} more` });
+      if (chartTechEntries.length > 5){
+        legendRows.push({ color: "rgba(100,116,139,.95)", label: `+${chartTechEntries.length - 5} more` });
       }
       const legendW = 196;
       const legendRowH = 12;
@@ -2198,17 +2616,22 @@
     const selectedTechNames = selectedTechs.map(t => t.name);
     const rows = getRows(tier, year);
     const refState = buildReferenceEmissionState(tier, year);
-    const techMap = computeTechAbatement(rows, year, refState.overlayWindow);
+    const allocation = allocateAbatementForSelection(rows, year, refState.overlayWindow, selectedTechs);
+    const independentMap = allocation.independentByCell || new Map();
+    const synergyMap = allocation.synergyByCell || new Map();
+    const totalMap = allocation.totalByCell || new Map();
     const targetLabel = refState.overlayWindow?.targetLabel || String(year);
     const lines = [];
     const emissionTier = rows.length ? (rows[0].emissionsTier || "") : "";
     lines.push([
       "abatement_effort_tier","emissions_path_tier","display_year","overlay_target","ref_year","view_mode",
-      "tech_ids","tech_names","category","sub","emissions_bt","overlay_bt","overlay_share_vs_ref"
+      "tech_ids","tech_names","include_synergy","category","sub","emissions_bt","overlay_independent_bt","overlay_synergy_bt","overlay_total_bt","overlay_share_vs_ref"
     ].join(","));
     for (const r of rows){
       const key = `${r.category}|||${r.sub}`;
-      const overlayBt = Math.max(0, +(techMap.get(key) || 0));
+      const overlayIndependentBt = Math.max(0, +(independentMap.get(key) || 0));
+      const overlaySynergyBt = Math.max(0, +(synergyMap.get(key) || 0));
+      const overlayBt = Math.max(0, +(totalMap.get(key) || 0));
       const denom = Math.max(0, +(refState.byKey.get(key) ?? r.emissions) || 0);
       const share = denom > 0 ? overlayBt / denom : 0;
       lines.push([
@@ -2220,9 +2643,12 @@
         STATE.viewMode,
         selectedTechIds.join("|"),
         selectedTechNames.join("|"),
+        STATE.includeSynergy ? "1" : "0",
         r.category,
         r.sub,
         (+r.emissions || 0).toFixed(6),
+        overlayIndependentBt.toFixed(6),
+        overlaySynergyBt.toFixed(6),
         overlayBt.toFixed(6),
         share.toFixed(6)
       ].map(csvEscape).join(","));
@@ -2248,7 +2674,10 @@
 
     const rows = getRows(tier, year);
     const refState = buildReferenceEmissionState(tier, year);
-    const techMap = computeTechAbatement(rows, year, refState.overlayWindow);
+    const allocation = allocateAbatementForSelection(rows, year, refState.overlayWindow, selectedTechs);
+    const techMapIndependent = allocation.independentByCell || new Map();
+    const techMapSynergy = allocation.synergyByCell || new Map();
+    const techMapTotal = allocation.totalByCell || new Map();
     const showOverlay = hasTechSelection && STATE.viewMode !== "emissions";
     const baseOpacity = STATE.viewMode === "decarb" ? 0.16 : 1;
 
@@ -2257,7 +2686,9 @@
     for (const s of L.sectors){
       for (const d of s.subs){
         const key = `${d.category}|||${d.sub}`;
-        d.techBt = techMap.get(key) || 0;
+        d.techBtIndependent = techMapIndependent.get(key) || 0;
+        d.techBtSynergy = techMapSynergy.get(key) || 0;
+        d.techBt = techMapTotal.get(key) || 0;
         d.techDenomBt = refState.byKey.get(key) ?? d.emissions;
         d.refYear = refState.refYear;
         d.techTargetLabel = refState.overlayWindow?.targetLabel || String(year);
@@ -2270,12 +2701,21 @@
     statTotal.textContent = `${fmtBt2(L.globalTotal)} Bt`;
     updateReferenceRibbon(year, refState);
 
-    const totalTech = Array.from(techMap.values()).reduce((a,b)=>a+b, 0);
+    const totalTech = allocation.total || 0;
+    const totalIndependent = allocation.independentTotal || 0;
+    const totalSynergy = allocation.synergyTotal || 0;
     statTech.textContent = `${fmtBt2(totalTech)} Bt`;
     statTechPct.textContent = (refState.refTotal>0) ? `${d3.format(".1%")(totalTech/refState.refTotal)}` : "—";
     if (!hasTechSelection) techPill.textContent = "Overlay status: Off";
     else if (STATE.viewMode === "emissions") techPill.textContent = "Overlay status: Hidden (Emissions-only view)";
-    else techPill.textContent = totalTech > 0 ? `Overlay status: Active (${fmtBt2(totalTech)} Bt)` : "Overlay status: 0 in this view";
+    else {
+      const synergyLabel = STATE.includeSynergy
+        ? `ind ${fmtBt2(totalIndependent)} + syn ${fmtBt2(totalSynergy)}`
+        : `ind ${fmtBt2(totalIndependent)} + syn off`;
+      techPill.textContent = totalTech > 0
+        ? `Overlay status: Active (${fmtBt2(totalTech)} Bt; ${synergyLabel})`
+        : "Overlay status: 0 in this view";
+    }
     if (trendCard){
       trendCard.style.display = hasTechSelection ? "block" : "none";
     }
@@ -2285,7 +2725,7 @@
       trendSvg.selectAll("*").remove();
       trendHint.textContent = "";
     }
-    updateContributors(rows, techMap, refState.byKey, refState.refYear);
+    updateContributors(rows, techMapTotal, refState.byKey, refState.refYear);
 
     const sectorSel = sectorsG.selectAll("g.sector").data(L.sectors, d => d.category);
 
@@ -2349,6 +2789,23 @@
         .attr("height", 0)
         .attr("fill", "url(#hatch)");
 
+      cellEnter.append("rect").attr("class","overlay overlaySynergy overlaySynergySolid")
+        .attr("rx", 2)
+        .attr("ry", 2)
+        .attr("x", cellInsetX).attr("y", innerH)
+        .attr("width", cellWidth)
+        .attr("height", 0)
+        .attr("fill", "#6b7280")
+        .attr("fill-opacity", 0.54);
+
+      cellEnter.append("rect").attr("class","overlay overlaySynergy overlaySynergyPattern")
+        .attr("rx", 2)
+        .attr("ry", 2)
+        .attr("x", cellInsetX).attr("y", innerH)
+        .attr("width", cellWidth)
+        .attr("height", 0)
+        .attr("fill", "url(#hatchSynergy)");
+
       cellEnter.append("text")
         .attr("class","subLabel")
         .attr("x", 12)
@@ -2374,14 +2831,22 @@
       const overlayInset = 1.2;
       const overlayX = cellInsetX + overlayInset;
       const overlayWidth = Math.max(0, cellWidth - (2 * overlayInset));
-      const overlayHeight = (d) => {
+      const overlayHeights = (d) => {
         const h = Math.max(0, d.y1 - d.y0);
+        const usableH = Math.max(0, h - (2 * overlayInset));
         const denom = Math.max(0, +(d.techDenomBt ?? d.emissions) || 0);
-        if (!showOverlay || denom <= 0) return 0;
-        const frac = Math.max(0, Math.min(1, (d.techBt || 0) / denom));
-        if (frac <= 0) return 0;
-        const raw = Math.min(h, Math.max(h * frac, 6));
-        return Math.max(0, raw - (2 * overlayInset));
+        if (!showOverlay || denom <= 0 || usableH <= 0) return { independent: 0, synergy: 0 };
+        const independentFrac = Math.max(0, Math.min(1, (d.techBtIndependent || 0) / denom));
+        const synergyFrac = Math.max(0, Math.min(1, (d.techBtSynergy || 0) / denom));
+        let independent = usableH * independentFrac;
+        let synergy = usableH * synergyFrac;
+        const total = independent + synergy;
+        if (total > usableH && total > 0){
+          const scale = usableH / total;
+          independent *= scale;
+          synergy *= scale;
+        }
+        return { independent, synergy };
       };
       const overlayY = (d) => {
         return yBase + d.y0 + overlayInset;
@@ -2392,19 +2857,38 @@
         .attr("x", overlayX)
         .attr("width", overlayWidth)
         .attr("y", d => overlayY(d))
-        .attr("height", d => overlayHeight(d))
+        .attr("height", d => overlayHeights(d).independent)
         .attr("fill", "#9ca3af")
         .attr("fill-opacity", 0.62)
-        .style("opacity", d => (showOverlay && overlayHeight(d) > 0) ? 1 : 0);
+        .style("opacity", d => (showOverlay && overlayHeights(d).independent > 0) ? 1 : 0);
 
       cellMerge.select("rect.overlayPattern")
         .transition().duration(520).ease(d3.easeCubicOut)
         .attr("x", overlayX)
         .attr("width", overlayWidth)
         .attr("y", d => overlayY(d))
-        .attr("height", d => overlayHeight(d))
+        .attr("height", d => overlayHeights(d).independent)
         .attr("fill", "url(#hatch)")
-        .style("opacity", d => (showOverlay && overlayHeight(d) > 0) ? 1 : 0);
+        .style("opacity", d => (showOverlay && overlayHeights(d).independent > 0) ? 1 : 0);
+
+      cellMerge.select("rect.overlaySynergySolid")
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("x", overlayX)
+        .attr("width", overlayWidth)
+        .attr("y", d => overlayY(d) + overlayHeights(d).independent)
+        .attr("height", d => overlayHeights(d).synergy)
+        .attr("fill", "#6b7280")
+        .attr("fill-opacity", 0.54)
+        .style("opacity", d => (showOverlay && overlayHeights(d).synergy > 0) ? 1 : 0);
+
+      cellMerge.select("rect.overlaySynergyPattern")
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("x", overlayX)
+        .attr("width", overlayWidth)
+        .attr("y", d => overlayY(d) + overlayHeights(d).independent)
+        .attr("height", d => overlayHeights(d).synergy)
+        .attr("fill", "url(#hatchSynergy)")
+        .style("opacity", d => (showOverlay && overlayHeights(d).synergy > 0) ? 1 : 0);
 
       cellMerge.select("text")
         .attr("x", 10)
@@ -2477,25 +2961,45 @@
       if (techState.techList.length > 1){
         TECHS = techState.techList;
         TECH_OVERLAY_MAPS = techState.overlayMaps;
+        TECH_OVERLAY_FROM_CSV = true;
         renderFooterTechSources(collectTechSourcesFromRows(techLoad.rows));
         setDataStatus("tech", "CSV", techLoad.source, techLoad.method);
       } else {
-        TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
+        TECHS = [NO_TECH];
         TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
-        renderFooterTechSources(collectTechSourcesFromTechs(TECHS));
+        TECH_OVERLAY_FROM_CSV = false;
+        renderFooterTechSources([]);
         setDataStatus("tech", "Fallback");
       }
     } catch (err) {
       console.warn("Using default technology metadata only (overlay CSV load failed).", err);
-      TECHS = [NO_TECH, ...DEFAULT_TECHS.filter(t => t.id !== "none")];
+      TECHS = [NO_TECH];
       TECH_OVERLAY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
-      renderFooterTechSources(collectTechSourcesFromTechs(TECHS));
+      TECH_OVERLAY_FROM_CSV = false;
+      renderFooterTechSources([]);
       setDataStatus("tech", "Fallback", String(err?.message || err || "load failed"));
+    }
+
+    try {
+      const synergyLoad = await loadCsvFromCandidates(
+        TECH_SYNERGY_PATHS,
+        ["tech_a", "tech_b", "tier", "category", "sub"]
+      );
+      const synergyState = buildSynergyStateFromCsvRows(synergyLoad.rows);
+      TECH_SYNERGY_MAPS = synergyState.overlayMaps;
+      SYNERGY_PAIR_META = synergyState.pairMeta;
+    } catch (err) {
+      console.warn("Synergy CSV load failed; complementarities disabled by data.", err);
+      TECH_SYNERGY_MAPS = { mid: new Map(), low: new Map(), high: new Map() };
+      SYNERGY_PAIR_META = new Map();
     }
 
     refreshTechSelectOptions();
     STATE.techIds = normalizeTechIds(STATE.techIds);
     syncTechSelectFromState();
+    if (toggleSynergy){
+      toggleSynergy.checked = !!STATE.includeSynergy;
+    }
     yearSlider.value = STATE.yearIndex;
     updateYearSliderVisual();
     updateTechPanel();

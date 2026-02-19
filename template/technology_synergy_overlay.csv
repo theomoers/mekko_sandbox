@@ -1,0 +1,19 @@
+tech_a,tech_b,pair_label,source_label,source_url,sources,tier,year,time_key,category,sub,synergy_bt_incremental
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2035,y2035,Power & Heat,Coal,0.9
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2035,y2035,Power & Heat,Natural Gas,0.8
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2035,y2035,Power & Heat,Oil,0.05
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2035,y2035,Power & Heat,Coal,2
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2035,y2035,Power & Heat,Natural Gas,1.9
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2035,y2035,Power & Heat,Oil,0.2
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2050,y2050,Power & Heat,Coal,1.2
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2050,y2050,Power & Heat,Natural Gas,0.9
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2050,y2050,Power & Heat,Oil,0.1
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2050,y2050,Power & Heat,Coal,1.9
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2050,y2050,Power & Heat,Natural Gas,1.7
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2050,y2050,Power & Heat,Oil,0.05
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2100,ypost,Power & Heat,Coal,0.8
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2100,ypost,Power & Heat,Natural Gas,0.9
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,low,2100,ypost,Power & Heat,Oil,0.01
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2100,ypost,Power & Heat,Coal,0.8
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2100,ypost,Power & Heat,Natural Gas,0.9
+solar,energy_storage,Solar + Grid-scale storage,Synthetic synergy assumptions (demo),https://example.com/synthetic-synergy,,high,2100,ypost,Power & Heat,Oil,0.01
