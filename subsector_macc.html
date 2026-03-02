@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Subsector MACC</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  @font-face{
+    font-family:"NHDisplay65Medium";
+    src:url("neue-haas-grotesk-display-pro-cufonfonts/NeueHaasDisplayMediu.ttf") format("truetype");
+    font-style:normal;
+    font-weight:500;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"NHDisplay55Regular";
+    src:url("neue-haas-grotesk-display-pro-cufonfonts/NeueHaasDisplayRoman.ttf") format("truetype");
+    font-style:normal;
+    font-weight:400;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"NHText55Roman";
+    src:url("neue-haas-grotesk-display-pro-cufonfonts/NeueHaasDisplayRoman.ttf") format("truetype");
+    font-style:normal;
+    font-weight:400;
+    font-display:swap;
+  }
+  :root{
+    --bg:#f3f6fc;
+    --panel:#ffffff;
+    --stroke:rgba(12,24,44,.14);
+    --text:#11243f;
+    --muted:rgba(17,36,63,.72);
+    --muted2:rgba(17,36,63,.52);
+    --accent:#1d4ed8;
+    --accent2:#0e7490;
+    --sans-head:"NHDisplay65Medium", "Neue Haas Grotesk Display 65 Medium", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans-subtitle:"NHDisplay55Regular", "Neue Haas Grotesk Display 55 Roman", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans-body:"NHText55Roman", "Neue Haas Text 55 Roman", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  body{
+    margin:0;
+    background:linear-gradient(180deg, #f5f8fd 0%, #edf3fb 100%);
+    color:var(--text);
+    font-family:var(--sans-body);
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:18px 16px 26px;}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  h1{margin:0;font-size:30px;line-height:1.05;font-weight:500;font-family:var(--sans-head);}
+  .sub{margin:6px 0 0;font-size:13px;color:var(--muted);font-family:var(--sans-subtitle);}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:12px;font-weight:500;}
+  .back:hover{text-decoration:underline;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+  .chip{padding:6px 9px;border:1px solid var(--stroke);border-radius:999px;background:rgba(255,255,255,.86);font-size:11px;color:var(--muted);}
+  .chip b{color:var(--text);font-family:var(--sans-head);font-weight:500;}
+  .card{border:1px solid var(--stroke);border-radius:10px;background:var(--panel);padding:14px 14px 12px;}
+  .controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .yearBox{display:flex;align-items:center;gap:10px;min-width:360px;flex:1;}
+  .advancedControls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:10px;}
+  .ctl{display:inline-flex;align-items:center;gap:8px;}
+  .ctl span{font-size:11px;color:var(--muted2);}
+  .ctlSelect{
+    border:1px solid var(--stroke);
+    border-radius:999px;
+    background:#fff;
+    color:var(--text);
+    font-size:11px;
+    padding:5px 9px;
+    font-family:var(--sans-body);
+  }
+  .thresholdBox{display:inline-flex;align-items:center;gap:8px;min-width:340px;flex:1;}
+  .capSlider{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:18px;
+    background:transparent;
+    --pct:50%;
+  }
+  .capSlider::-webkit-slider-runnable-track{
+    height:5px;
+    border-radius:999px;
+    background:linear-gradient(90deg, rgba(14,116,144,.9) 0%, rgba(14,116,144,.9) var(--pct), rgba(148,163,184,.28) var(--pct), rgba(148,163,184,.28) 100%);
+  }
+  .capSlider::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:12px;
+    height:12px;
+    margin-top:-3.5px;
+    border-radius:50%;
+    border:1px solid rgba(14,116,144,.95);
+    background:#fff;
+  }
+  .capSlider::-moz-range-track{height:5px;border-radius:999px;background:rgba(148,163,184,.28);}
+  .capSlider::-moz-range-progress{height:5px;border-radius:999px;background:rgba(14,116,144,.9);}
+  .capSlider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;border:1px solid rgba(14,116,144,.95);background:#fff;}
+  .capValue{font-size:11px;color:var(--text);min-width:92px;text-align:right;font-family:var(--sans-head);}
+  .yearSlider{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:22px;
+    background:transparent;
+    --pct:0%;
+  }
+  .yearSlider::-webkit-slider-runnable-track{
+    height:6px;
+    border-radius:999px;
+    background:linear-gradient(90deg, rgba(29,78,216,.9) 0%, rgba(29,78,216,.9) var(--pct), rgba(148,163,184,.28) var(--pct), rgba(148,163,184,.28) 100%);
+  }
+  .yearSlider::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px;
+    height:14px;
+    margin-top:-4px;
+    border-radius:50%;
+    border:1px solid rgba(29,78,216,.92);
+    background:#fff;
+  }
+  .yearSlider::-moz-range-track{height:6px;border:0;border-radius:999px;background:rgba(148,163,184,.26);}
+  .yearSlider::-moz-range-progress{height:6px;border-radius:999px;background:rgba(29,78,216,.9);}
+  .yearSlider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;border:1px solid rgba(29,78,216,.92);background:#fff;}
+  .yearVal{font-size:17px;min-width:60px;font-family:var(--sans-head);font-weight:500;color:var(--text);}
+  .play{appearance:none;border:1px solid var(--stroke);background:#fff;border-radius:999px;padding:6px 11px;font-size:11px;font-family:var(--sans-head);font-weight:500;color:var(--text);cursor:pointer;}
+  .stats{display:flex;gap:12px;flex-wrap:wrap;}
+  .stat{font-size:11px;color:var(--muted2);}
+  .stat b{display:block;color:var(--text);font-size:13px;font-family:var(--sans-head);font-weight:500;margin-top:2px;}
+  svg{width:100%;height:auto;display:block;}
+  .axis path,.axis line{stroke:var(--stroke);}
+  .axis text{fill:var(--muted);font-size:11px;font-family:var(--sans-body);}
+  .grid line{stroke:rgba(148,163,184,.24);stroke-dasharray:2 5;}
+  .grid path{display:none;}
+  .titleIn{font-family:var(--sans-head);font-size:12px;fill:var(--muted2);letter-spacing:.22px;text-transform:uppercase;}
+  .xlab,.ylab{fill:var(--muted2);font-size:11px;font-family:var(--sans-subtitle);}
+  .bar{stroke:rgba(255,255,255,.96);stroke-width:1;}
+  .bar:hover{stroke-width:2;}
+  .bar.isSelected{stroke:#0f172a;stroke-width:2.4;}
+  .zeroLine{stroke:rgba(15,23,42,.5);stroke-width:1.1;stroke-dasharray:5 3;}
+  .capLine{stroke:rgba(14,116,144,.88);stroke-width:1.3;stroke-dasharray:5 3;}
+  .capLabel{fill:rgba(14,116,144,.96);font-size:10px;font-family:var(--sans-subtitle);}
+  .readRow{
+    margin-top:10px;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+  }
+  .readPanel{
+    border:1px solid var(--stroke);
+    border-radius:10px;
+    background:rgba(248,251,255,.9);
+    padding:10px 10px 9px;
+  }
+  .readTitle{
+    margin:0 0 6px;
+    font-size:11px;
+    letter-spacing:.22px;
+    text-transform:uppercase;
+    color:var(--muted2);
+    font-family:var(--sans-head);
+  }
+  .readText{margin:0;color:var(--muted);font-size:11px;line-height:1.42;}
+  .legendList{display:grid;gap:6px;}
+  .legendItem{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;}
+  .sw{width:12px;height:12px;border-radius:3px;border:1px solid rgba(15,23,42,.18);}
+  .detailK{color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.18px;}
+  .detailV{margin-top:2px;color:var(--text);font-size:12px;font-family:var(--sans-head);}
+  .detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+  .detailTable{margin-top:8px;width:100%;border-collapse:collapse;}
+  .detailTable th,.detailTable td{padding:3px 0;font-size:10.5px;border-bottom:1px dashed rgba(148,163,184,.24);text-align:left;}
+  .detailTable th{color:var(--muted2);font-family:var(--sans-subtitle);font-weight:400;}
+  .detailTable td{color:var(--muted);}
+  .detailTable td:last-child{text-align:right;}
+  .tooltip{
+    position:fixed;
+    pointer-events:none;
+    background:rgba(12,18,32,.95);
+    color:rgba(255,255,255,.95);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;
+    padding:9px 10px;
+    font-size:11px;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .12s ease,transform .12s ease;
+    z-index:60;
+  }
+  .ttHead{font-weight:700;margin-bottom:5px;font-family:var(--sans-head);}
+  .ttGrid{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-family:var(--sans-body);}
+  .note{margin-top:8px;font-size:11px;color:var(--muted2);}
+  @media (max-width: 920px){
+    h1{font-size:24px;}
+    .yearBox{min-width:100%;}
+    .controls{align-items:flex-start;}
+    .thresholdBox{min-width:100%;}
+    .readRow{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <a class="back" href="mekko_modern_with_tech.html" id="backLink">Back to emissions Mekko</a>
+      <h1>Marginal Abatement Cost Curve</h1>
+      <p class="sub">Interactive dummy data prototype for subsector-level abatement cost visualization (2025-2050).</p>
+      <div class="chips">
+        <div class="chip"><b>Sector:</b> <span id="chipCategory">-</span></div>
+        <div class="chip"><b>Subsector:</b> <span id="chipSubsector">-</span></div>
+        <div class="chip"><b>Effort:</b> <span id="chipEffort">-</span></div>
+        <div class="chip"><b>Selected techs:</b> <span id="chipTechs">None</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <div class="yearBox">
+        <div style="font-size:11px;color:var(--muted2);">Year</div>
+        <input id="yearSlider" class="yearSlider" type="range" min="0" max="5" step="1" value="0" />
+        <div class="yearVal" id="yearValue">2025</div>
+        <button class="play" type="button" id="playBtn">Play</button>
+      </div>
+      <div class="stats">
+        <div class="stat">Total abatement potential<b id="statPotential">-</b></div>
+        <div class="stat">Weighted average cost<b id="statAvgCost">-</b></div>
+        <div class="stat">Negative-cost share<b id="statNegShare">-</b></div>
+        <div class="stat">Feasible potential (<= threshold)<b id="statFeasible">-</b></div>
+      </div>
+    </div>
+    <div class="advancedControls">
+      <label class="ctl" for="sortMode">
+        <span>Sort blocks</span>
+        <select id="sortMode" class="ctlSelect">
+          <option value="cost_asc">Cost (low to high)</option>
+          <option value="potential_desc">Potential (high to low)</option>
+          <option value="name_asc">Measure (A-Z)</option>
+        </select>
+      </label>
+      <div class="thresholdBox">
+        <label class="ctl" for="costCap"><span>Cost threshold (US$/tCO2e)</span></label>
+        <input id="costCap" class="capSlider" type="range" min="-100" max="300" step="5" value="80" />
+        <span id="costCapValue" class="capValue">&lt;= 80</span>
+      </div>
+      <button class="play" type="button" id="downloadCsvBtn">Download year CSV</button>
+    </div>
+
+    <svg id="maccChart" viewBox="0 0 1180 520" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="note" id="methodNote">Bars are sorted by marginal abatement cost for the selected year. Width = abatement potential, height = cost in US$/tCO2e.</div>
+    <div class="readRow">
+      <section class="readPanel" aria-label="How to read the MACC chart">
+        <h3 class="readTitle">How to Read the Chart</h3>
+        <p class="readText">Each block is one abatement lever for this subsector in the selected year.</p>
+        <p class="readText">Block width shows abatement potential (BtCO2e). Block height shows marginal cost (US$/tCO2e).</p>
+        <p class="readText">Blocks below the dashed zero line indicate cost-saving abatement options.</p>
+      </section>
+      <section class="readPanel" aria-label="MACC color legend">
+        <h3 class="readTitle">Color Legend</h3>
+        <div class="legendList">
+          <div class="legendItem"><span class="sw" style="background:#0ea5e9;"></span><span>Cost-saving (&lt; 0 US$/tCO2e)</span></div>
+          <div class="legendItem"><span class="sw" style="background:#2563eb;"></span><span>Low cost (0 to 80 US$/tCO2e)</span></div>
+          <div class="legendItem"><span class="sw" style="background:#4f46e5;"></span><span>Medium cost (80 to 180 US$/tCO2e)</span></div>
+          <div class="legendItem"><span class="sw" style="background:#7c3aed;"></span><span>High cost (&gt; 180 US$/tCO2e)</span></div>
+        </div>
+      </section>
+      <section class="readPanel" aria-label="Selected measure details">
+        <h3 class="readTitle">Clicked Block Details</h3>
+        <div id="selectedBlockDetails" class="readText">Click a block to pin it. You will see its current-year values and its 2025-2050 trajectory.</div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip" aria-hidden="true"></div>
+
+<script>
+  const YEARS = [2025, 2030, 2035, 2040, 2045, 2050];
+  const MEASURES = [
+    "Operational efficiency",
+    "Fuel switching",
+    "Process electrification",
+    "Demand reduction",
+    "Material circularity",
+    "Carbon capture retrofit",
+    "Digital optimization",
+    "Low-carbon feedstock"
+  ];
+
+  const params = new URLSearchParams(window.location.search);
+  const category = (params.get("category") || "Power & Heat").trim();
+  const subsector = (params.get("subsector") || "Coal").trim();
+  const effort = (params.get("effort") || "low").trim().toLowerCase();
+  const techsRaw = (params.get("techs") || "").trim();
+
+  document.getElementById("chipCategory").textContent = category || "-";
+  document.getElementById("chipSubsector").textContent = subsector || "-";
+  document.getElementById("chipEffort").textContent = effort === "high" ? "High abatement effort" : "Low abatement effort";
+  document.getElementById("chipTechs").textContent = techsRaw ? techsRaw.split(",").join(", ") : "None";
+
+  const requestedYear = +params.get("year");
+  const nearestYearIndex = Number.isFinite(requestedYear)
+    ? YEARS.reduce((bestIdx, year, idx) => {
+        return Math.abs(year - requestedYear) < Math.abs(YEARS[bestIdx] - requestedYear) ? idx : bestIdx;
+      }, 0)
+    : 0;
+
+  const state = {
+    yearIndex: Math.max(0, Math.min(YEARS.length - 1, nearestYearIndex)),
+    playing: false,
+    timer: null,
+    selectedMeasureId: null,
+    sortMode: "cost_asc",
+    costCap: 80,
+    lastYear: null,
+    lastRows: []
+  };
+
+  const yearSlider = document.getElementById("yearSlider");
+  yearSlider.max = String(YEARS.length - 1);
+  yearSlider.value = String(state.yearIndex);
+
+  const yearValue = document.getElementById("yearValue");
+  const playBtn = document.getElementById("playBtn");
+  const tooltip = d3.select("#tooltip");
+  const svg = d3.select("#maccChart");
+
+  const statPotential = document.getElementById("statPotential");
+  const statAvgCost = document.getElementById("statAvgCost");
+  const statNegShare = document.getElementById("statNegShare");
+  const statFeasible = document.getElementById("statFeasible");
+  const selectedBlockDetails = document.getElementById("selectedBlockDetails");
+  const sortMode = document.getElementById("sortMode");
+  const costCap = document.getElementById("costCap");
+  const costCapValue = document.getElementById("costCapValue");
+  const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+
+  if (sortMode) sortMode.value = state.sortMode;
+  if (costCap) costCap.value = String(state.costCap);
+
+  const fmtBt2 = d3.format(",.2f");
+  const fmtPct = d3.format(".1%");
+  const fmtCost = d3.format(",.0f");
+  const fmtCost1 = d3.format(",.1f");
+
+  function costColor(cost){
+    if (cost < 0) return "#0ea5e9";
+    if (cost <= 80) return "#2563eb";
+    if (cost <= 180) return "#4f46e5";
+    return "#7c3aed";
+  }
+
+  function costBand(cost){
+    if (cost < 0) return "Cost-saving";
+    if (cost <= 80) return "Low cost";
+    if (cost <= 180) return "Medium cost";
+    return "High cost";
+  }
+
+  function hashText(str){
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function mulberry32(seed){
+    let t = seed >>> 0;
+    return function(){
+      t += 0x6D2B79F5;
+      let x = Math.imul(t ^ (t >>> 15), 1 | t);
+      x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function updateYearSliderVisual(){
+    const min = +yearSlider.min || 0;
+    const max = +yearSlider.max || 1;
+    const val = +yearSlider.value || 0;
+    const pct = (max > min) ? ((val - min) / (max - min)) * 100 : 0;
+    yearSlider.style.setProperty("--pct", `${Math.max(0, Math.min(100, pct))}%`);
+  }
+
+  function updateCapSliderVisual(){
+    if (!costCap || !costCapValue) return;
+    const min = +costCap.min || -100;
+    const max = +costCap.max || 300;
+    const val = +costCap.value || 0;
+    const pct = (max > min) ? ((val - min) / (max - min)) * 100 : 0;
+    costCap.style.setProperty("--pct", `${Math.max(0, Math.min(100, pct))}%`);
+    const prefix = (val >= 0) ? "<= " : "< ";
+    costCapValue.textContent = `${prefix}${fmtCost(val)}`;
+  }
+
+  function applySortAndCum(rows, mode){
+    const arr = (rows || []).map(d => ({ ...d }));
+    if (mode === "potential_desc"){
+      arr.sort((a, b) => (b.potentialBt - a.potentialBt) || d3.ascending(a.measure, b.measure));
+    } else if (mode === "name_asc"){
+      arr.sort((a, b) => d3.ascending(a.measure, b.measure));
+    } else {
+      arr.sort((a, b) => (a.costUsdPerT - b.costUsdPerT) || d3.ascending(a.measure, b.measure));
+    }
+    let cum = 0;
+    for (const r of arr){
+      r.x0 = cum;
+      cum += r.potentialBt;
+      r.x1 = cum;
+    }
+    return arr;
+  }
+
+  function buildDummyMacc(year){
+    const timeFrac = (year - 2025) / 25;
+    const baseSeed = hashText(`${category}|||${subsector}|||${effort}`);
+
+    const rows = MEASURES.map((measure, idx) => {
+      const rand = mulberry32(baseSeed + ((idx + 1) * 101));
+      const p0 = 0.08 + (rand() * 0.48);
+      const pGrowth = 0.45 + (rand() * 0.9);
+      const potential = Math.max(0.03, p0 * (1 + (pGrowth * timeFrac)));
+
+      const c0 = -35 + (rand() * 260);
+      const learning = 0.08 + (rand() * 0.45);
+      const hardening = (20 + (rand() * 95)) * timeFrac * timeFrac;
+      const effortShift = effort === "high" ? -12 : 10;
+      const cost = Math.max(-120, Math.min(420, (c0 * (1 - (learning * timeFrac))) + hardening + effortShift));
+
+      return {
+        id: `m_${idx}`,
+        measure,
+        potentialBt: potential,
+        costUsdPerT: cost
+      };
+    });
+
+    return rows;
+  }
+
+  function showTooltip(event, d){
+    const html = `
+      <div class="ttHead">${d.measure}</div>
+      <div class="ttGrid">
+        <div>Abatement potential</div><div>${fmtBt2(d.potentialBt)} BtCO2e</div>
+        <div>Marginal cost</div><div>${fmtCost(d.costUsdPerT)} US$/tCO2e</div>
+        <div>Cumulative potential</div><div>${fmtBt2(d.x1)} BtCO2e</div>
+      </div>`;
+    tooltip.html(html)
+      .style("opacity", 1)
+      .style("transform", "translateY(0px)")
+      .attr("aria-hidden", "false");
+
+    const pad = 14;
+    const bb = tooltip.node().getBoundingClientRect();
+    let x = event.clientX + pad;
+    let y = event.clientY + pad;
+    if (x + bb.width > window.innerWidth - 10) x = event.clientX - bb.width - pad;
+    if (y + bb.height > window.innerHeight - 10) y = event.clientY - bb.height - pad;
+    tooltip.style("left", `${x}px`).style("top", `${y}px`);
+  }
+
+  function hideTooltip(){
+    tooltip.style("opacity", 0).style("transform", "translateY(6px)").attr("aria-hidden", "true");
+  }
+
+  function updateSelectedBlockDetails(currentYear, currentRows){
+    if (!selectedBlockDetails) return;
+    const selected = (currentRows || []).find(d => d.id === state.selectedMeasureId);
+    if (!selected){
+      selectedBlockDetails.innerHTML = "Click a block to pin it. You will see its current-year values and its 2025-2050 trajectory.";
+      return;
+    }
+    const trajectory = YEARS.map((y) => {
+      const row = buildDummyMacc(y).find(d => d.id === selected.id);
+      return {
+        year: y,
+        potentialBt: row ? row.potentialBt : 0,
+        costUsdPerT: row ? row.costUsdPerT : 0
+      };
+    });
+    selectedBlockDetails.innerHTML = `
+      <div class="detailGrid">
+        <div><div class="detailK">Measure</div><div class="detailV">${selected.measure}</div></div>
+        <div><div class="detailK">Cost band</div><div class="detailV">${costBand(selected.costUsdPerT)}</div></div>
+        <div><div class="detailK">Potential (${currentYear})</div><div class="detailV">${fmtBt2(selected.potentialBt)} BtCO2e</div></div>
+        <div><div class="detailK">Cost (${currentYear})</div><div class="detailV">${fmtCost1(selected.costUsdPerT)} US$/tCO2e</div></div>
+      </div>
+      <table class="detailTable" aria-label="Selected block trajectory over time">
+        <thead><tr><th>Year</th><th>Potential (Bt)</th><th>Cost (US$/t)</th></tr></thead>
+        <tbody>
+          ${trajectory.map(d => `<tr><td>${d.year}</td><td>${fmtBt2(d.potentialBt)}</td><td>${fmtCost1(d.costUsdPerT)}</td></tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  function render(){
+    const year = YEARS[state.yearIndex];
+    const baseRows = buildDummyMacc(year);
+    const rows = applySortAndCum(baseRows, state.sortMode);
+
+    yearValue.textContent = String(year);
+
+    const totalPotential = rows.reduce((sum, r) => sum + r.potentialBt, 0);
+    const totalCostWeighted = rows.reduce((sum, r) => sum + (r.potentialBt * r.costUsdPerT), 0);
+    const weightedAvgCost = totalPotential > 0 ? (totalCostWeighted / totalPotential) : 0;
+    const negPotential = rows.filter(r => r.costUsdPerT < 0).reduce((sum, r) => sum + r.potentialBt, 0);
+    const feasiblePotential = rows.filter(r => r.costUsdPerT <= state.costCap).reduce((sum, r) => sum + r.potentialBt, 0);
+
+    statPotential.textContent = `${fmtBt2(totalPotential)} Bt`;
+    statAvgCost.textContent = `${fmtCost(weightedAvgCost)} US$/tCO2e`;
+    statNegShare.textContent = fmtPct(totalPotential > 0 ? (negPotential / totalPotential) : 0);
+    statFeasible.textContent = `${fmtBt2(feasiblePotential)} Bt`;
+    const sortLabel = (state.sortMode === "potential_desc") ? "potential" : (state.sortMode === "name_asc" ? "name" : "cost");
+    document.getElementById("methodNote").textContent =
+      `Bars are sorted by ${sortLabel}. Width = abatement potential, height = cost in US$/tCO2e. Current threshold: ${fmtCost(state.costCap)} US$/tCO2e.`;
+
+    const W = 1180;
+    const H = 520;
+    const m = { top: 34, right: 22, bottom: 58, left: 76 };
+    const iw = W - m.left - m.right;
+    const ih = H - m.top - m.bottom;
+
+    const minCost = d3.min(rows, d => d.costUsdPerT) || 0;
+    const maxCost = d3.max(rows, d => d.costUsdPerT) || 0;
+
+    const x = d3.scaleLinear().domain([0, Math.max(0.1, totalPotential)]).range([0, iw]);
+    const y = d3.scaleLinear().domain([Math.min(-130, minCost - 20), Math.max(220, maxCost + 25)]).nice(5).range([ih, 0]);
+
+    svg.selectAll("*").remove();
+    const g = svg.append("g").attr("transform", `translate(${m.left},${m.top})`);
+
+    g.append("text")
+      .attr("class", "titleIn")
+      .attr("x", 0)
+      .attr("y", -10)
+      .text(`Subsector MACC (dummy) - ${category} / ${subsector}`);
+
+    g.append("g")
+      .attr("class", "grid")
+      .call(d3.axisLeft(y).ticks(6).tickSize(-iw).tickFormat(""));
+
+    g.append("g")
+      .attr("class", "axis")
+      .call(d3.axisLeft(y).ticks(6).tickFormat(v => `${fmtCost(v)}`));
+
+    g.append("g")
+      .attr("class", "axis")
+      .attr("transform", `translate(0,${ih})`)
+      .call(d3.axisBottom(x).ticks(7).tickFormat(v => `${d3.format(".1f")(v)}b`));
+
+    const zeroY = y(0);
+    if (zeroY >= 0 && zeroY <= ih){
+      g.append("line")
+        .attr("class", "zeroLine")
+        .attr("x1", 0)
+        .attr("x2", iw)
+        .attr("y1", zeroY)
+        .attr("y2", zeroY);
+    }
+    const capY = y(state.costCap);
+    if (capY >= 0 && capY <= ih){
+      g.append("line")
+        .attr("class", "capLine")
+        .attr("x1", 0)
+        .attr("x2", iw)
+        .attr("y1", capY)
+        .attr("y2", capY);
+      g.append("text")
+        .attr("class", "capLabel")
+        .attr("x", iw - 2)
+        .attr("y", capY - 5)
+        .attr("text-anchor", "end")
+        .text(`Threshold ${fmtCost(state.costCap)}`);
+    }
+
+    g.append("text")
+      .attr("class", "xlab")
+      .attr("x", iw)
+      .attr("y", ih + 42)
+      .attr("text-anchor", "end")
+      .text("Cumulative abatement potential (BtCO2e)");
+
+    g.append("text")
+      .attr("class", "ylab")
+      .attr("x", -ih / 2)
+      .attr("y", -54)
+      .attr("text-anchor", "middle")
+      .attr("transform", "rotate(-90)")
+      .text("Marginal cost (US$/tCO2e)");
+
+    g.selectAll("rect.bar")
+      .data(rows, d => d.id)
+      .join("rect")
+      .attr("class", "bar")
+      .classed("isSelected", d => d.id === state.selectedMeasureId)
+      .attr("x", d => x(d.x0))
+      .attr("y", d => Math.min(y(d.costUsdPerT), y(0)))
+      .attr("width", d => Math.max(1, x(d.x1) - x(d.x0)))
+      .attr("height", d => Math.max(1, Math.abs(y(d.costUsdPerT) - y(0))))
+      .attr("fill", d => costColor(d.costUsdPerT))
+      .attr("opacity", d => (d.costUsdPerT <= state.costCap ? 1 : 0.3))
+      .attr("tabindex", 0)
+      .on("mousemove", (event, d) => showTooltip(event, d))
+      .on("mouseleave", hideTooltip)
+      .on("click", (event, d) => {
+        event.preventDefault();
+        state.selectedMeasureId = (state.selectedMeasureId === d.id) ? null : d.id;
+        render();
+      })
+      .on("keydown", (event, d) => {
+        if (event.key === "Enter" || event.key === " "){
+          event.preventDefault();
+          state.selectedMeasureId = (state.selectedMeasureId === d.id) ? null : d.id;
+          render();
+        }
+      });
+
+    updateSelectedBlockDetails(year, rows);
+    state.lastYear = year;
+    state.lastRows = rows.map(d => ({ ...d }));
+  }
+
+  function downloadCurrentYearCsv(){
+    const year = state.lastYear;
+    const rows = state.lastRows || [];
+    if (!Number.isFinite(+year) || !rows.length) return;
+    const header = [
+      "category",
+      "subsector",
+      "effort",
+      "year",
+      "measure",
+      "potential_btco2e",
+      "cost_usd_per_tco2e",
+      "cost_band",
+      "within_threshold"
+    ];
+    const lines = [header.join(",")];
+    for (const r of rows){
+      const row = [
+        JSON.stringify(category),
+        JSON.stringify(subsector),
+        JSON.stringify(effort),
+        year,
+        JSON.stringify(r.measure),
+        (+r.potentialBt).toFixed(6),
+        (+r.costUsdPerT).toFixed(3),
+        JSON.stringify(costBand(r.costUsdPerT)),
+        r.costUsdPerT <= state.costCap ? "1" : "0"
+      ];
+      lines.push(row.join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `macc_${String(category).replace(/[^a-z0-9]+/gi, "_")}_${String(subsector).replace(/[^a-z0-9]+/gi, "_")}_${year}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function stopPlay(){
+    state.playing = false;
+    if (state.timer) clearInterval(state.timer);
+    state.timer = null;
+    playBtn.textContent = "Play";
+  }
+
+  function startPlay(){
+    if (state.playing) return;
+    state.playing = true;
+    playBtn.textContent = "Pause";
+    state.timer = setInterval(() => {
+      state.yearIndex = (state.yearIndex + 1) % YEARS.length;
+      yearSlider.value = String(state.yearIndex);
+      updateYearSliderVisual();
+      render();
+    }, 1100);
+  }
+
+  playBtn.addEventListener("click", () => {
+    state.playing ? stopPlay() : startPlay();
+  });
+
+  yearSlider.addEventListener("input", (e) => {
+    state.yearIndex = Math.max(0, Math.min(YEARS.length - 1, +e.target.value || 0));
+    updateYearSliderVisual();
+    stopPlay();
+    render();
+  });
+
+  if (sortMode){
+    sortMode.addEventListener("change", (e) => {
+      state.sortMode = String(e.target.value || "cost_asc");
+      render();
+    });
+  }
+
+  if (costCap){
+    costCap.addEventListener("input", (e) => {
+      state.costCap = +e.target.value || 0;
+      updateCapSliderVisual();
+      render();
+    });
+  }
+
+  if (downloadCsvBtn){
+    downloadCsvBtn.addEventListener("click", () => {
+      downloadCurrentYearCsv();
+    });
+  }
+
+  updateYearSliderVisual();
+  updateCapSliderVisual();
+  render();
+</script>
+</body>
+</html>

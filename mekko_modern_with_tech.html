@@ -308,6 +308,12 @@
   .rect{stroke:rgba(255,255,255,.92);stroke-width:2px;rx:2px;ry:2px;filter:drop-shadow(0 10px 16px rgba(0,0,0,.18));}
   [data-theme="light"] .rect{stroke:rgba(255,255,255,.95);filter:drop-shadow(0 8px 12px rgba(0,0,0,.10));}
   .rect:hover{stroke-width:3px;filter:drop-shadow(0 16px 22px rgba(0,0,0,.28));}
+  .cell.isClickable .rect,.cell.isClickable .subLabel{cursor:pointer;}
+  .cell.isClickable:focus-visible .rect{
+    stroke-width:3px;
+    stroke:rgba(255,255,255,.98);
+    filter:drop-shadow(0 14px 20px rgba(0,0,0,.26));
+  }
   .overlay{rx:2px;ry:2px;pointer-events:none;opacity:.95;stroke:rgba(71,85,105,.45);stroke-width:.8px;}
   .overlaySynergy{stroke:rgba(55,65,81,.65);}
   .fade{opacity:.22;}
@@ -345,7 +351,7 @@
       <h1>Annual Global Emissions</h1>
       <p class="subtitle">
         Emissions Mekko + <b>Decarbonization Technology</b> (gray hatched area). Tile areas remain proportional to absolute emissions (consistent scale across years and effort levels).
-        Select one or more technologies to see where they apply and how big their combined estimated potential is.
+        Select one or more technologies to see where they apply and how big their combined estimated potential is. Click any subsector tile to open its MACC page.
       </p>
     </div>
     <div class="actions">
@@ -462,7 +468,7 @@
     <footer>
       <div><b>Source:</b> NGFS emissions CSV, BAU emissions CSV (external, configurable)</div>
       <div><b>Decarbonization Technology:</b> <span id="footerTechSources">Loading...</span></div>
-      <div><b>Notes:</b> Ordering fixed to 2025. Each sector is normalized to full height (y-axis = subsector share), while total filled width scales with absolute emissions. Chart years map to abatement horizons: 2025->by 2035, 2035->by 2050, 2050->post-2050.</div>
+      <div><b>Notes:</b> Ordering fixed to 2025. The Mekko now uses a fixed full x-width, sector widths show shares of total emissions, and total filled height scales with absolute emissions. Chart years map to abatement horizons: 2025->by 2035, 2035->by 2050, 2050->post-2050.</div>
     </footer>
   </div>
 </div>
@@ -1600,16 +1606,16 @@
     for (const r of rows) sectorTotals.set(r.category, (sectorTotals.get(r.category) || 0) + r.emissions);
     const globalTotal = Array.from(sectorTotals.values()).reduce((a,b)=>a+b, 0);
 
-    // Normalize each sector to full chart height so y encodes subsector shares.
-    const fillFactor = 1;
-    const fillH = innerH;
+    // Keep overall chart width fixed; use total chart height to encode absolute emissions.
+    const fillFactor = (MAX_TOTAL > 0) ? (globalTotal / MAX_TOTAL) : 0;
+    const fillH = Math.max(0, Math.min(innerH, innerH * fillFactor));
 
     const sectors = [];
     let xAcc = 0;
     for (const cat of CAT_ORDER){
       const sTot = sectorTotals.get(cat) || 0;
-      // Absolute scaling on x: total filled width varies with global emissions.
-      const w = (MAX_TOTAL > 0) ? (sTot / MAX_TOTAL) * innerW : 0;
+      // Sector widths now span the full x-axis and reflect share of total emissions.
+      const w = (globalTotal > 0) ? (sTot / globalTotal) * innerW : 0;
       const items = rows.filter(d => d.category === cat);
       sectors.push({ category: cat, total: sTot, x0: xAcc, w, items });
       xAcc += w;
@@ -1945,6 +1951,21 @@
     tooltip.style("left", `${x}px`).style("top", `${y}px`);
   }
   function hideTooltip(){ tooltip.style("opacity", 0).style("transform","translateY(6px)").attr("aria-hidden","true"); }
+
+  function openSubsectorMacc(tile){
+    const year = YEARS[Math.max(0, Math.min(YEARS.length - 1, +STATE.yearIndex || 0))] || tile?.year || 2025;
+    const params = new URLSearchParams({
+      category: String(tile?.category || ""),
+      subsector: String(tile?.sub || ""),
+      year: String(year),
+      effort: String(STATE.tier || "low")
+    });
+    const selectedTechs = normalizeTechIds(STATE.techIds || []);
+    if (selectedTechs.length){
+      params.set("techs", selectedTechs.join(","));
+    }
+    window.location.href = `subsector_macc.html?${params.toString()}`;
+  }
 
   function showTrendSubsectorTooltip(ev, periodLabel, category, sub, bt, periodTotal){
     const share = periodTotal > 0 ? bt / periodTotal : 0;
@@ -2759,7 +2780,21 @@
       const cellInsetX = 0.8;
       const cellWidth = Math.max(0, sector.w - (2 * cellInsetX));
 
-      const cellEnter = cellSel.enter().append("g").attr("class","cell");
+      const cellEnter = cellSel.enter().append("g")
+        .attr("class","cell isClickable")
+        .attr("tabindex", 0)
+        .attr("role", "button")
+        .attr("aria-label", d => `Open marginal abatement cost curve for ${d.sub} in ${d.category}`)
+        .on("click", (ev, d) => {
+          ev.preventDefault();
+          openSubsectorMacc(d);
+        })
+        .on("keydown", (ev, d) => {
+          if (ev.key === "Enter" || ev.key === " "){
+            ev.preventDefault();
+            openSubsectorMacc(d);
+          }
+        });
 
       cellEnter.append("rect")
         .attr("class","rect")
@@ -2814,6 +2849,11 @@
         .text(d => d.sub);
 
       const cellMerge = cellEnter.merge(cellSel);
+      cellMerge
+        .attr("class","cell isClickable")
+        .attr("tabindex", 0)
+        .attr("role", "button")
+        .attr("aria-label", d => `Open marginal abatement cost curve for ${d.sub} in ${d.category}`);
       cellMerge.classed("fade", d => (STATE.query ? !d.sub.toLowerCase().includes(STATE.query) : false));
 
       const yBase = (innerH - L.fillH);

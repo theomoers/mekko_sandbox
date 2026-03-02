@@ -1,9 +1,9 @@
 year,category,sub,emissions
-2025,Industry,Cement,1.45
-2025,Industry,Chemicals,2.17
-2025,Industry,Iron & Steel,3.66
+2025,Industry,Cement,2.52
+2025,Industry,Chemicals,1.96
+2025,Industry,Iron & Steel,3.3
 2025,Industry,Non-ferrous metals,0.03
-2025,Industry,Other Industry,5.0
+2025,Industry,Other Industry,4.5
 2025,Power & Heat,Coal,8.76
 2025,Power & Heat,Natural Gas,3.98
 2025,Power & Heat,Oil,0.32
@@ -20,11 +20,11 @@ year,category,sub,emissions
 2025,Building,F-Gases,1.64
 2025,Building,Residential Combustion,2.12
 2025,Other,Residual,7.24
-2035,Industry,Cement,1.44
-2035,Industry,Chemicals,2.12
-2035,Industry,Iron & Steel,3.26
+2035,Industry,Cement,2.62
+2035,Industry,Chemicals,1.91
+2035,Industry,Iron & Steel,2.92
 2035,Industry,Non-ferrous metals,0.03
-2035,Industry,Other Industry,5.96
+2035,Industry,Other Industry,5.33
 2035,Power & Heat,Coal,6.74
 2035,Power & Heat,Natural Gas,3.64
 2035,Power & Heat,Oil,0.25
@@ -41,11 +41,11 @@ year,category,sub,emissions
 2035,Building,F-Gases,1.63
 2035,Building,Residential Combustion,2.38
 2035,Other,Residual,8.05
-2050,Industry,Cement,1.46
-2050,Industry,Chemicals,1.95
-2050,Industry,Iron & Steel,2.9
+2050,Industry,Cement,2.84
+2050,Industry,Chemicals,1.72
+2050,Industry,Iron & Steel,2.56
 2050,Industry,Non-ferrous metals,0.03
-2050,Industry,Other Industry,6.86
+2050,Industry,Other Industry,6.05
 2050,Power & Heat,Coal,3.49
 2050,Power & Heat,Natural Gas,2.58
 2050,Power & Heat,Oil,0.43

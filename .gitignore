@@ -10,6 +10,7 @@
 # Keep website entry points
 !index.html
 !mekko_modern_with_tech.html
+!subsector_macc.html
 
 # Keep only required runtime data files
 !template/
